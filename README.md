@@ -6,9 +6,9 @@ Team S06 – Fall 2025 - Spring 2026
 
 ---
 
-## 👥 Contributors
+## Contributors
 - **Si Ci Chou (Simon)** – chou170@purdue.edu  
-- 
+- **Yu-Kuang Chen** - chen5292@purdue.edu
 - 
 
 ---
