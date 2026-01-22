@@ -1,5 +1,4 @@
 from pathlib import Path
-from pydantic import Field
 from pydantic_settings import BaseSettings
 
 PROJECT_ROOT = Path(__file__).resolve().resolve().parent.parent.parent.parent 
@@ -8,26 +7,34 @@ ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
-    DB_PORT: int = Field(default=5432)
-    DB_HOST: str = Field(default="localhost")
+    DB_PORT: int 
+    DB_HOST: str
     DB_NAME: str
-    DB_USER: str
-    DB_PASSWORD: str
-    ALEMBIC_DB_USER: str
-    ALEMBIC_DB_PASSWORD: str
+    DB_MASTER_USER: str
+    DB_MASTER_PASSWORD: str
+    DB_RUNTIME_USER: str
+    DB_RUNTIME_PASSWORD: str
+    DB_ALEMBIC_USER: str
+    DB_ALEMBIC_PASSWORD: str
 
     @property
-    def DB_URL(self) -> str:
+    def DB_MASTER_URL(self) -> str:
         return (
-                f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}"
+                f"postgresql+psycopg2://{self.DB_MASTER_USER}:{self.DB_MASTER_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
+    @property
+    def DB_RUNTIME_URL(self) -> str:
+        return (
+                f"postgresql+psycopg2://{self.DB_RUNTIME_USER}:{self.DB_RUNTIME_PASSWORD}"
+                f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
 
     @property
-    def ALEMBIC_DB_URL(self) -> str:
+    def DB_ALEMBIC_URL(self) -> str:
         return (
-                f"postgresql+psycopg2://{self.ALEMBIC_DB_USER}:{self.ALEMBIC_DB_PASSWORD}"
+                f"postgresql+psycopg2://{self.DB_ALEMBIC_USER}:{self.DB_ALEMBIC_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         ) 
 
