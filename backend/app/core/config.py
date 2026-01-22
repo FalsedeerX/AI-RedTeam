@@ -1,5 +1,10 @@
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+PROJECT_ROOT = Path(__file__).resolve().resolve().parent.parent.parent.parent 
+ENV_FILE = PROJECT_ROOT / ".env"
+
 
 
 class Settings(BaseSettings):
@@ -28,7 +33,9 @@ class Settings(BaseSettings):
 
 
     class Config:
-        env_file = ".env"
+        env_file = ENV_FILE
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()
