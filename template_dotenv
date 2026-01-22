@@ -1,0 +1,15 @@
+###############################################
+# Falsedeer's Unified Global Configuration V2 #
+###############################################
+
+# Backend configruation
+DB_PORT=5432
+DB_HOST=localhost
+DB_NAME=airedteam
+DB_USER=airedteam_runtime
+DB_PASSWORD=""
+ALEMBIC_DB_USER=airedteam_alembic
+ALEMBIC_DB_PASSWORD=""
+
+# Frontend Configuration
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
