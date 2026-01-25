@@ -1,10 +1,10 @@
 from app.core.config import settings
+from app.core.debug import connection_check
 
 
 def main():
-    print(settings.DB_MASTER_URL)
-    print(settings.DB_RUNTIME_URL)
-    print(settings.DB_ALEMBIC_URL)
+    print("Checking Connection for Database Setup......")
+    print("Connection Status:", connection_check(settings.DB_ALEMBIC_URL))
 
 
 

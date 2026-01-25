@@ -20,21 +20,21 @@ class Settings(BaseSettings):
     @property
     def DB_MASTER_URL(self) -> str:
         return (
-                f"postgresql+psycopg2://{self.DB_MASTER_USER}:{self.DB_MASTER_PASSWORD}"
+                f"postgresql+psycopg://{self.DB_MASTER_USER}:{self.DB_MASTER_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
     @property
     def DB_RUNTIME_URL(self) -> str:
         return (
-                f"postgresql+psycopg2://{self.DB_RUNTIME_USER}:{self.DB_RUNTIME_PASSWORD}"
+                f"postgresql+psycopg://{self.DB_RUNTIME_USER}:{self.DB_RUNTIME_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
     @property
     def DB_ALEMBIC_URL(self) -> str:
         return (
-                f"postgresql+psycopg2://{self.DB_ALEMBIC_USER}:{self.DB_ALEMBIC_PASSWORD}"
+                f"postgresql+psycopg://{self.DB_ALEMBIC_USER}:{self.DB_ALEMBIC_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         ) 
 
