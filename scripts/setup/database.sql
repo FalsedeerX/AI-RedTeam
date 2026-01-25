@@ -37,6 +37,10 @@ CREATE DATABASE airedteam OWNER aesir;
 CREATE SCHEMA app AUTHORIZATION airedteam_alembic;
 ALTER DATABASE airedteam SET search_path TO app;
 
+-- Install extensions for UUID generation
+\echo Installing extension: pgcrypto
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA app;
+
 -- Permission configuration
 \echo Granting required permissions to runtime and migration user......
 GRANT CONNECT ON DATABASE airedteam TO airedteam_runtime, airedteam_alembic;
