@@ -4,6 +4,7 @@ greenlet==3.3.0
 Mako==1.3.10
 MarkupSafe==3.0.3
 psycopg==3.3.2
+psycopg-binary==3.3.2
 pydantic==2.12.5
 pydantic-settings==2.12.0
 pydantic_core==2.41.5
