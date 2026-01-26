@@ -1,3 +1,10 @@
+# Devlopment Process
+
+---
+
+## Repository Architecture
+
+```text
 .
 ├── backend
 │   ├── alembic
@@ -9,6 +16,7 @@
 │   └── frontend
 ├── docs
 │   ├── AIRedTeam_Software-Development-Plan.pdf
+│   ├── DevelopmentProcess.md
 │   ├── structure.md
 │   └── Verification and Validation - Team 6.pdf
 ├── frontend
@@ -26,5 +34,15 @@
 │   └── setup
 └── template_dotenv
 
-13 directories, 14 files
+13 directories, 15 files
+```
 
+---
+
+## Branching / Workflow Model
+
+pass
+
+## Code Devlopment & Review Policy
+
+pass
