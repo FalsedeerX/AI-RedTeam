@@ -46,7 +46,7 @@ Structure Explanation:
 
 ## Branching / Workflow Model
 
-pass
+We are planning to do it in GitHub flow, making the `main` branch be always stable and deployable among version changes, additional branches will be dedicated to local development and testing. The naming convention of all branches will follw **snake case** naming convention.
 
 ## Code Devlopment & Review Policy
 
