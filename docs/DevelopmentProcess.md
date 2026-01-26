@@ -50,4 +50,4 @@ We are planning to do it in GitHub flow, making the `main` branch be always stab
 
 ## Code Devlopment & Review Policy
 
-pass
+We will address all pull requests and merging at the end of each week to reduce the chances of merge conflicts. When a merge conflict encounters, only allows merging into `main` branch when you are sure it won't break anything, making `main` branch always remain stable and usable. During conflict resolving, it is not allowed to perform a push force.
