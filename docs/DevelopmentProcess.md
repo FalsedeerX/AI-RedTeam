@@ -33,9 +33,14 @@
 │   ├── RAG
 │   └── setup
 └── template_dotenv
-
-13 directories, 15 files
 ```
+
+Structure Explanation:
+1. **backend** - For backend codebase.
+2. **frontend** - For frontend codebase.
+3. **scripts** - For helper scripts for installation or environment setup.
+4. **backup** - A temporary folder for storing previous version upon changes.
+5. **template_dotenv** - Template of the global configuration file for the whole project.
 
 ---
 
