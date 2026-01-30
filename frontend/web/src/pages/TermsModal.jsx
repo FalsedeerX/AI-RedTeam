@@ -1,3 +1,4 @@
+import React from 'react';
 export default function TermsModal({ username, email, onAccept, onDecline }) {
   return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">

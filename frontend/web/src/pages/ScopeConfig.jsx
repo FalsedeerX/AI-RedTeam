@@ -1,3 +1,4 @@
+import React from 'react';
 export default function ScopeConfig({ username, email, onStartScan }) {
   const [scanType, setScanType] = React.useState('web');
   const [targets, setTargets] = React.useState('');

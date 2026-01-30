@@ -1,3 +1,4 @@
+import React from 'react';
 export default function Dashboard({ username, email, targets, scanType }) {
   const [logs, setLogs] = React.useState([]);
   const [scanStatus, setScanStatus] = React.useState('IDLE');

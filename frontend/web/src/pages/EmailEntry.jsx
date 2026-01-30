@@ -1,3 +1,4 @@
+import React from 'react';
 export default function EmailEntry({ onVerify }) {
   const [email, setEmail] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
