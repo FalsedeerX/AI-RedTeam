@@ -190,3 +190,5 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/python,react
 
+backend/emails.json
+sa ple_log.json
