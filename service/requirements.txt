@@ -10,3 +10,5 @@ pdfplumber
 fastapi
 pandas
 langchain-ollama
+duckduckgo-search
+ddgs

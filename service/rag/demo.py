@@ -6,7 +6,7 @@ from langchain_chroma import Chroma
 
 LLM_NAME = "huihui_ai/qwen3-vl-abliterated"
 EMBED_NAME = "mxbai-embed-large"  
-AGENT_MODE = False 
+AGENT_MODE = True 
 DOCS_PATH = "./docs/"
 
 model = ChatOllama(
@@ -52,6 +52,8 @@ if AGENT_MODE:
 
     from langchain.tools import tool
     from langchain.agents import create_agent
+    from langchain_community.tools import DuckDuckGoSearchRun
+    import os
 
     @tool(response_format="content_and_artifact")
     def retrieve_context(query: str):
@@ -61,9 +63,16 @@ if AGENT_MODE:
             (f"Source: {doc.metadata}\nContent: {doc.page_content}")
             for doc in retrieved_docs
         )
-        return serialized, retrieved_docs
+        return serialized, retrieved_docs    
 
-    tools = [retrieve_context]
+    @tool
+    def duckduckgo_search_tool(query: str):
+        """Use DuckDuckGo Search to find relevant information."""
+        search = DuckDuckGoSearchRun()
+        results = search.run(query)
+        return results
+
+    tools = [retrieve_context, duckduckgo_search_tool]
     # If desired, specify custom instructions
     prompt = (
         "You have access to a tool that retrieves context from pdfs under doc folder in this project. "
@@ -75,7 +84,7 @@ if AGENT_MODE:
     query = (
         "What is the scope of AI RedTeam?\n\n"
         "Does the document mention anything about penetration testing?\n\n"
-        "Can I use AI RedTeam to attack someone?"
+        "Who is Trump's vice president?"
     )
 
     for event in agent.stream(
