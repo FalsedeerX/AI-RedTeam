@@ -1,42 +1,30 @@
+import os
+from langchain_community.document_loaders import PDFPlumberLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_chroma import Chroma
+
 LLM_NAME = "huihui_ai/qwen3-vl-abliterated"
 EMBED_NAME = "mxbai-embed-large"  
-# EMBED_NAME = "qwen3-embedding:8b"
-AGENT_MODE = False  # Set to True to enable agent mode
-
-from langchain_ollama import ChatOllama
+AGENT_MODE = False 
+DOCS_PATH = "./docs/"
 
 model = ChatOllama(
     model=LLM_NAME,
     temperature=0
 )
-# messages = [
-#     (
-#         "system",
-#         "You are a helpful assistant that translates English to Traditional Chinese. Translate the user sentence.",
-#     ),
-#     ("human", "I love programming."),
-# ]
-# ai_msg = model.invoke(messages)
-# print(ai_msg.content)
-
-
-from langchain_community.document_loaders import PDFPlumberLoader
-import os
 
 docs = []
 
-files = os.listdir("./docs/")
+files = os.listdir(DOCS_PATH)
 for file in files:
     if not file.endswith(".pdf"):
         continue
-    loader = PDFPlumberLoader(os.path.join("./docs/", file))
+    loader = PDFPlumberLoader(os.path.join(DOCS_PATH, file))
     doc = loader.load()[0]
     print(f"Total characters: {len(doc.page_content)}")
-    # print(doc.metadata)
+    # print(doc.metadata)  # Debug Use only
     docs.append(doc)
-
-
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,  # chunk size (characters)
@@ -47,15 +35,9 @@ all_splits = text_splitter.split_documents(docs)
 
 print(f"Split blog post into {len(all_splits)} sub-documents.")
 
-
-from langchain_ollama import OllamaEmbeddings
-
 embeddings = OllamaEmbeddings(
     model=EMBED_NAME,
 )
-
-
-from langchain_chroma import Chroma
 
 vector_store = Chroma(
     collection_name="example_collection",
@@ -69,6 +51,7 @@ if AGENT_MODE:
     print("Running in agent mode...")
 
     from langchain.tools import tool
+    from langchain.agents import create_agent
 
     @tool(response_format="content_and_artifact")
     def retrieve_context(query: str):
@@ -79,9 +62,6 @@ if AGENT_MODE:
             for doc in retrieved_docs
         )
         return serialized, retrieved_docs
-
-
-    from langchain.agents import create_agent
 
     tools = [retrieve_context]
     # If desired, specify custom instructions
