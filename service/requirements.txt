@@ -6,7 +6,7 @@ langchain-chroma
 chromadb==1.4.0
 sentence-transformers
 python-dotenv
-pypdf
+pdfplumber
 fastapi
 pandas
 langchain-ollama
