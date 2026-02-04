@@ -95,8 +95,47 @@ if AGENT_MODE:
         search = DuckDuckGoSearchRun()
         results = search.run(query)
         return results
+    
+    @tool
+    def execute_nmap_scan(command: str):
+        """Execute an Nmap scan command and return the results.
+        
+        Args:
+            command: The full Nmap command string to execute (e.g., 'nmap -sS -p 80 192.168.1.1').
+        """
+        import subprocess
+        
+        # Security/Sanity check
+        if not command.strip().lower().startswith("nmap"):
+             return "Error: Command must start with 'nmap'."
 
-    tools = [retrieve_context] #, duckduckgo_search_tool
+        print(f"DEBUG: Executing Nmap command: {command}")
+        
+        try:
+            # Run the command
+            # shell=True allows passing the full string on Windows
+            result = subprocess.run(
+                command, 
+                shell=True, 
+                capture_output=True, 
+                text=True, 
+                timeout=300 # 5 minutes timeout
+            )
+            
+            # Combine stdout and stderr
+            full_output = result.stdout + "\n" + result.stderr
+            
+            if result.returncode != 0:
+                return f"Nmap execution failed (Exit Code {result.returncode}):\n{full_output}"
+            
+            return f"Scan Execution Successful:\n{full_output}"
+            
+        except subprocess.TimeoutExpired:
+            return "Error: Nmap scan timed out (limit: 300s)."
+        except Exception as e:
+            return f"System Error executing nmap: {str(e)}"
+
+    tools = [retrieve_context, execute_nmap_scan] #, duckduckgo_search_tool
     # If desired, specify custom instructions
     prompt = (
         """### Role
@@ -131,7 +170,14 @@ if AGENT_MODE:
         # 2. According to the manual, what is the specific mathematical requirement for the offset value provided to this flag?
         # 3. Generate a command to scan 192.168.1.1 using an offset of 24."""
         # """I need to use fragmentation to bypass a firewall on 192.168.1.1. Choose the most appropriate scan type that supports fragmentation according to the guide and generate the command with --mtu 16."""
-        """Perform an OS Detection (-O) scan on 192.168.1.1 but the firewall blocks all standard fragmentation. Try using custom fragmentation with an offset of 32, and ensure you bypass Linux kernel defragmentation by using the raw ethernet option as suggested in the guide."""
+        # """Perform an OS Detection (-O) scan on 192.168.1.1 but the firewall blocks all standard fragmentation. Try using custom fragmentation with an offset of 32, and ensure you bypass Linux kernel defragmentation by using the raw ethernet option as suggested in the guide."""
+        # """I need to check if the host 127.0.0.1 is up and see which common ports are open.
+        # 1. Consult the Nmap guide to find the most efficient way to perform a 'Service Version Detection' scan.
+        # 2. Use the execute_nmap_scan tool to run the identified command against 127.0.0.1 and report the final output."""
+        """The target is 127.0.0.1. I need to bypass a firewall using IP fragmentation with a custom MTU offset of 24.
+        1. Consult the Nmap guide to find the correct flag.
+        2. Ensure you do not use any incompatible flags like -f as per the manual.
+        3. You SHOULD use the execute_nmap_scan tool to run the identified command and show me the raw tool output."""
     )
 
     for event in agent.stream(
