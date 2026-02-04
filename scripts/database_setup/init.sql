@@ -55,7 +55,6 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 -- setup the desrired schema and set owner to migration user
 \echo [INFO] Creating schema :db_schema owned by :db_migrate_user ......
 CREATE SCHEMA :"db_schema" AUTHORIZATION :"db_migrate_user";
-ALTER DATABASE :"db_name" SET search_path TO :"db_schema";
 
 -- Install extensions for UUID generation
 \echo [INFO] Installing extension: pgcrypto ......
@@ -64,6 +63,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA :"db_schema";
 -- Permission configuration
 \echo [INFO] Granting permissions ......
 GRANT CONNECT ON DATABASE :"db_name" TO :"db_runtime_user", :"db_migrate_user";
+
+-- Database owner are allowed to inspect on the tables and field
+GRANT USAGE ON SCHEMA :"db_schema" TO :"db_owner_user";
+GRANT SELECT ON ALL TABLES IN SCHEMA :"db_schema" TO :"db_owner_user";
 
 -- Runtime user only allow CRUD permission in schema
 GRANT USAGE ON SCHEMA :"db_schema" TO :"db_runtime_user";
@@ -76,4 +79,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO :"db_runtime_user";
 ALTER DEFAULT PRIVILEGES FOR ROLE :"db_migrate_user" IN SCHEMA :"db_schema"
 GRANT USAGE, SELECT ON SEQUENCES TO :"db_runtime_user";
 
+-- Allow future created tables to be seen by database owner
+ALTER DEFAULT PRIVILEGES FOR ROLE :"db_migrate_user" IN SCHEMA :"db_schema"
+GRANT SELECT ON TABLES TO :"db_owner_user";
+
+
 \echo [INFO] Database initialize completed successfully.
+
