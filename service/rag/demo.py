@@ -6,6 +6,10 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import shutil
 
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+os.environ["LANGSMITH_PROJECT"] = "My First App"
+
 # LLM_NAME = "huihui_ai/qwen3-vl-abliterated"
 LLM_NAME = "qwen3:8b"
 EMBED_NAME = "bge-m3"
@@ -177,7 +181,7 @@ if AGENT_MODE:
         """The target is 127.0.0.1. I need to bypass a firewall using IP fragmentation with a custom MTU offset of 24.
         1. Consult the Nmap guide to find the correct flag.
         2. Ensure you do not use any incompatible flags like -f as per the manual.
-        3. You SHOULD use the execute_nmap_scan tool to run the identified command and show me the raw tool output."""
+        3. You MUST use the execute_nmap_scan tool to run the identified command and show me the raw tool output."""
     )
 
     for event in agent.stream(

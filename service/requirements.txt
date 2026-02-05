@@ -12,3 +12,4 @@ pandas
 langchain-ollama
 duckduckgo-search
 ddgs
+IPython
