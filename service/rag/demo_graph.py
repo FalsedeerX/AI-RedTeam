@@ -16,6 +16,40 @@ os.environ["LANGSMITH_PROJECT"] = "My First App"
 LLM_NAME = "qwen3:8b"
 EMBED_NAME = "bge-m3"
 
+LLM_SYSTEM_PROMPT = """### Role
+Security Research & Execution Assistant. You convert user intent into technical actions using provided documentation and execution tools.
+
+### Rules
+1. **Tool-Driven Protocol**: 
+   - Step 1: Call `retrieve_context` to find technical specifications.
+   - Step 2: Once specs are found, call `execute_nmap_scan` with the verified command.
+2. **Fact Supremacy**: Documentation context > Internal memory. If the guide says a flag is incompatible (e.g., `-f` vs `--mtu`), you MUST follow it.
+3. **Logic Check**: 
+   - Flags must support the scan type (e.g., fragmentation does NOT support `-sT`).
+   - Numerical offsets (like MTU) must be multiples of 8.
+4. **Constraint Transparency**: Before generating any command, explicitly list which flags/scan types are DISALLOWED for the requested technique.
+
+### Output Format (For Final Response)
+- **Constraint Analysis**: [List disallowed options found in context]
+- **Flag**: [Flag Name]
+- **Explanation**: [Summary from manual]
+- **Command**: 
+```bash
+[Verified Command]"""
+
+CRITIC_SYSTEM_PROMPT = """You are a Senior Security Auditor. 
+Your task is to cross-check a proposed Nmap command against the provided documentation context.
+
+Check specifically for:
+1. **Flag Exclusivity**: e.g., Ensuring '-f' and '--mtu' are NOT used together.
+2. **Scan Type Support**: e.g., Confirming that the scan type (like -sS) supports fragmentation, while others (like -sT) do not.
+3. **Mathematical Constraints**: e.g., Verifying that the MTU value is a multiple of 8.
+
+Rules:
+- If the command is 100% compliant with the documentation, reply ONLY with the string 'VALID'.
+- If there is a conflict or error, explain the specific violation based on the manual and provide instructions for the fix.
+"""
+
 # Step 1: Define tools and model
 
 embeddings = OllamaEmbeddings(
@@ -36,37 +70,6 @@ model = ChatOllama(
 
 
 # Define tools
-@tool
-def multiply(a: int, b: int) -> int:
-    """Multiply `a` and `b`.
-
-    Args:
-        a: First int
-        b: Second int
-    """
-    return a * b
-
-
-@tool
-def add(a: int, b: int) -> int:
-    """Adds `a` and `b`.
-
-    Args:
-        a: First int
-        b: Second int
-    """
-    return a + b
-
-
-@tool
-def divide(a: int, b: int) -> float:
-    """Divide `a` and `b`.
-
-    Args:
-        a: First int
-        b: Second int
-    """
-    return a / b
 
 @tool(response_format="content_and_artifact")
 def retrieve_context(query: str):
@@ -144,7 +147,7 @@ def llm_call(state: dict):
             model_with_tools.invoke(
                 [
                     SystemMessage(
-                        content="You are a helpful assistant tasked with performing arithmetic on a set of inputs."
+                        content=LLM_SYSTEM_PROMPT
                     )
                 ]
                 + state["messages"]
@@ -165,21 +168,66 @@ def tool_node(state: dict):
         result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
     return {"messages": result}
 
+def critic_node(state: MessagesState):
+    messages = state["messages"]
+    last_ai_message = messages[-1]
+
+    # Find if there's an Nmap tool call to inspect
+    nmap_call = next((tc for tc in last_ai_message.tool_calls if tc["name"] == "execute_nmap_scan"), None)
+    
+    if not nmap_call:
+        return {"messages": []} # No command to criticize
+
+    proposed_command = nmap_call["args"]["command"]
+    
+    # Retrieve the latest RAG context from message history
+    rag_context = ""
+    for m in reversed(messages):
+        if isinstance(m, ToolMessage) and m.name == "retrieve_context":
+            # m.content is the serialized string returned by your tool
+            rag_context = m.content
+            break
+
+    # Invoke LLM as the Critic
+    critic_response = model.invoke([
+        SystemMessage(content=CRITIC_SYSTEM_PROMPT),
+        HumanMessage(content=f"DOCUMENTATION CONTEXT:\n{rag_context}\n\nPROPOSED COMMAND: {proposed_command}")
+    ])
+
+    # Logic: If not valid, append the feedback to the conversation
+    if "VALID" in critic_response.content.upper() and len(critic_response.content) < 15:
+        return {"messages": []} # Pass
+    else:
+        # Construct failure feedback to force the LLM to rethink
+        feedback = f"CRITICISM DETECTED:\n{critic_response.content}\n\nPlease correct the command and try again."
+        return {"messages": [HumanMessage(content=feedback)]}
+
 # Step 5: Define logic to determine whether to end
 
 # Conditional edge function to route to the tool node or end based upon whether the LLM made a tool call
-def should_continue(state: MessagesState) -> Literal["tool_node", END]:
+def should_continue(state: MessagesState) -> Literal["critic_node", END]:
     """Decide if we should continue the loop or stop based upon whether the LLM made a tool call"""
 
     messages = state["messages"]
     last_message = messages[-1]
 
-    # If the LLM makes a tool call, then perform an action
+    # If the LLM makes a tool call, then perform critic node
     if last_message.tool_calls:
-        return "tool_node"
+        return "critic_node"
 
     # Otherwise, we stop (reply to the user)
     return END
+
+# New router for the Critic's verdict
+def route_after_critic(state: MessagesState) -> Literal["llm_call", "tool_node", END]:
+    last_message = state["messages"][-1]
+    
+    # If the last message is the HumanMessage feedback from critic_node
+    if isinstance(last_message, HumanMessage) and "CRITICISM DETECTED" in last_message.content:
+        return "llm_call" # Loop back to fix
+    
+    # If the second to last message had tool calls and was cleared by critic
+    return "tool_node"
 
 # Step 6: Build agent
 
@@ -189,14 +237,26 @@ agent_builder = StateGraph(MessagesState)
 # Add nodes
 agent_builder.add_node("llm_call", llm_call)
 agent_builder.add_node("tool_node", tool_node)
+agent_builder.add_node("critic_node", critic_node)
 
 # Add edges to connect nodes
 agent_builder.add_edge(START, "llm_call")
+
+# Edge 1: LLM Call -> Critic (if tools) or END
 agent_builder.add_conditional_edges(
     "llm_call",
     should_continue,
-    ["tool_node", END]
+    {"critic_node": "critic_node", END: END}
 )
+
+# Edge 2: Critic -> LLM (to fix) or Tool (to execute)
+agent_builder.add_conditional_edges(
+    "critic_node",
+    route_after_critic,
+    {"llm_call": "llm_call", "tool_node": "tool_node", END: END}
+)
+
+# Edge 3: Tool -> LLM (to report results)
 agent_builder.add_edge("tool_node", "llm_call")
 
 # Compile the agent
