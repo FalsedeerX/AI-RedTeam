@@ -10,17 +10,18 @@ class Settings(BaseSettings):
     DB_PORT: int 
     DB_HOST: str
     DB_NAME: str
-    DB_MASTER_USER: str
-    DB_MASTER_PASSWORD: str
+    DB_SCHEMA: str
+    DB_OWNER_USER: str
+    DB_OWNER_PASSWORD: str
     DB_RUNTIME_USER: str
     DB_RUNTIME_PASSWORD: str
-    DB_ALEMBIC_USER: str
-    DB_ALEMBIC_PASSWORD: str
+    DB_MIGRATE_USER: str
+    DB_MIGRATE_PASSWORD: str
 
     @property
-    def DB_MASTER_URL(self) -> str:
+    def DB_OWNER_URL(self) -> str:
         return (
-                f"postgresql+psycopg://{self.DB_MASTER_USER}:{self.DB_MASTER_PASSWORD}"
+                f"postgresql+psycopg://{self.DB_OWNER_USER}:{self.DB_OWNER_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
@@ -32,9 +33,9 @@ class Settings(BaseSettings):
         )
 
     @property
-    def DB_ALEMBIC_URL(self) -> str:
+    def DB_MIGRATE_URL(self) -> str:
         return (
-                f"postgresql+psycopg://{self.DB_ALEMBIC_USER}:{self.DB_ALEMBIC_PASSWORD}"
+                f"postgresql+psycopg://{self.DB_MIGRATE_USER}:{self.DB_MIGRATE_PASSWORD}"
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         ) 
 
