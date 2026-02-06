@@ -26,10 +26,11 @@ jobs:
           pip install -r requirements.txt
       
       - name: Check Python syntax
-        working-directory: ./backend
+        working-directory: .
+        env:
+          LANGSMITH_API_KEY: ${{ secrets.SIMON_LANGSMITH_API_KEY }}
         run: |
-          python -m py_compile backend.py
-          python -m py_compile app/**/*.py
+          python -m compileall backend/backend.py backend/app service
 
   frontend-test:
     runs-on: ubuntu-latest
