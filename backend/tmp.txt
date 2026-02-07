@@ -1,0 +1,345 @@
+Yep — that’s actually a **very good move**, and it’s how real security platforms structure things.
+
+What you’re describing is introducing a **logical engagement / scope container** between client and target. That solves *a lot* of future problems.
+
+Let me tighten this into a **clean, final structure** and explain *why* it’s the right call.
+
+---
+
+## Why a `project` table is the right abstraction
+
+Think of a **project** as:
+
+> *One security engagement, assessment, or campaign*
+
+Examples:
+
+* “Q1 External Attack Surface Review”
+* “Prod Cloud Infra Audit”
+* “Customer ABC – Web App Pentest”
+
+A project:
+
+* Has **many targets**
+* Has **many scans**
+* Has **shared context**
+* Has **shared permissions**
+* Has **shared reporting**
+
+Without `project`, you’ll end up re-inventing it later.
+
+---
+
+## Final hierarchy (this is the mental model)
+
+```
+Client
+ └── Project
+      ├── Targets
+      │    └── Scans
+      │         └── Tool Runs → Outputs
+      │              └── Observations → Findings → AI
+      └── Reports / Metadata
+```
+
+This is clean, scalable, and intuitive for users.
+
+---
+
+## Updated FINAL table set (with Project added)
+
+### 1️⃣ `clients`
+
+(unchanged)
+
+```text
+clients
+-------
+id (uuid, pk)
+name
+contact_email
+created_at
+```
+
+---
+
+### 2️⃣ `projects`
+
+**Engagement / scope container**
+
+```text
+projects
+--------
+id (uuid, pk)
+client_id (fk → clients.id)
+
+name TEXT                    -- "Q1 External Scan"
+description TEXT
+status ENUM                  -- active, archived
+start_date DATE
+end_date DATE
+
+created_at
+```
+
+Why this matters:
+
+* Reporting happens at **project level**
+* Permissions happen at **project level**
+* AI summaries make sense at **project level**
+
+---
+
+### 3️⃣ `targets`
+
+Now scoped **inside a project**
+
+```text
+targets
+-------
+id (uuid, pk)
+project_id (fk → projects.id)
+
+type ENUM                     -- ip, cidr, domain, url
+value TEXT
+label TEXT
+is_active BOOLEAN
+
+created_at
+```
+
+This allows:
+
+* Same domain in multiple projects
+* Clean scoping
+* Clear ownership
+
+---
+
+### 4️⃣ `scans`
+
+(unchanged conceptually)
+
+```text
+scans
+-----
+id (uuid, pk)
+target_id (fk → targets.id)
+
+scan_type ENUM               -- passive, light, full
+status ENUM                  -- queued, running, completed, failed
+
+started_at
+finished_at
+toolchain_version
+ai_model_version
+```
+
+---
+
+### 5️⃣ `tool_runs`
+
+```text
+tool_runs
+---------
+id (uuid, pk)
+scan_id (fk → scans.id)
+
+tool_name
+tool_version
+command
+status
+
+started_at
+finished_at
+```
+
+---
+
+### 6️⃣ `tool_outputs`
+
+(raw truth)
+
+```text
+tool_outputs
+------------
+id (uuid, pk)
+tool_run_id (fk → tool_runs.id)
+
+format ENUM                  -- json, xml, text
+raw_output JSONB / TEXT
+hash
+created_at
+```
+
+---
+
+### 7️⃣ `observations`
+
+(normalized facts)
+
+```text
+observations
+------------
+id (uuid, pk)
+scan_id (fk → scans.id)
+
+source_tool
+obs_type ENUM
+key
+value
+metadata JSONB
+confidence FLOAT
+```
+
+---
+
+### 8️⃣ `findings`
+
+(derived risk)
+
+```text
+findings
+--------
+id (uuid, pk)
+scan_id (fk → scans.id)
+
+finding_type ENUM            -- vulnerability, misconfig, risk
+identifier
+title
+severity ENUM
+evidence JSONB
+derived_from JSONB
+confidence FLOAT
+```
+
+---
+
+### 9️⃣ `ai_analyses`
+
+```text
+ai_analyses
+-----------
+id (uuid, pk)
+scan_id (fk → scans.id)
+
+model
+prompt_version
+summary
+risk_overview
+created_at
+```
+
+---
+
+### 🔟 `recommendations`
+
+```text
+recommendations
+---------------
+id (uuid, pk)
+finding_id (fk → findings.id)
+
+recommendation
+priority ENUM
+effort ENUM
+```
+
+---
+
+## What `project` unlocks immediately
+
+### ✅ Clean querying
+
+* “Show me **all findings for this engagement**”
+* “Compare scans **within this project only**”
+
+### ✅ Permissions
+
+Later:
+
+```text
+project_members
+---------------
+project_id
+user_id
+role
+```
+
+### ✅ Reporting
+
+* Project-level executive summaries
+* AI-generated engagement reports
+* PDF exports
+
+### ✅ Reuse
+
+Same target can appear in:
+
+* External scan project
+* Internal scan project
+* Continuous monitoring project
+
+---
+
+## What NOT to do with `project`
+
+❌ Don’t store scan results directly on project
+❌ Don’t mix targets across projects
+❌ Don’t skip project and add it later (painful migration)
+
+---
+
+## Final recommendation (clear and decisive)
+
+👉 **Yes, add `project`.**
+👉 Make it the **unit of engagement**.
+👉 Scope **targets inside projects**, not clients.
+
+This structure is:
+
+* Industry-aligned
+* User-friendly
+* AI-friendly
+* Audit-friendly
+* Future-proof
+
+---
+
+If you want next, I can:
+
+* Convert this **entire schema to SQLAlchemy 2.0**
+* Design **project-level AI summaries**
+* Show **best indexes for performance**
+* Help you design **project diff / risk trend queries**
+* Help you design **project permission models**
+
+You’re building this like a real platform now — this was the right instinct.
+
+---
+
+runs
+----
+id (uuid, pk)
+project_id (fk → projects.id)
+target_id (fk → targets.id)
+
+run_type ENUM              -- scan, exploit, passive, ai
+tool_name TEXT
+tool_version TEXT
+
+status ENUM                -- queued, running, completed, failed
+
+started_at
+finished_at
+
+config JSONB               -- tool args, scope, options
+
+output_format ENUM         -- json, xml, text
+raw_output JSONB / TEXT    -- immutable
+
+output_hash TEXT           -- integrity / dedup
+
+parent_run_id UUID NULL    -- future orchestration
+run_role ENUM              -- primary, subtask, enrichment
+

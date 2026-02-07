@@ -1,0 +1,25 @@
+###############################################
+# Falsedeer's Unified Global Configuration V2 #
+###############################################
+
+# <<<<<<<<<<<<<<< Backend configruation >>>>>>>>>>>>>>>
+DB_PORT=5432
+DB_HOST=localhost
+DB_NAME=airedteam
+
+# master password (database owner)
+DB_OWNER_USER=aesir
+DB_OWNER_PASSWORD="pa$$w0rd"
+
+# runtime user
+DB_RUNTIME_USER=airedteam_runtime
+DB_RUNTIME_PASSWORD=
+
+# migration user
+DB_MIGRATE_USER=airedteam_migrate
+DB_MIGRATE_PASSWORD=
+
+# <<<<<<<<<<<<<<< Frontend Configuration >>>>>>>>>>>>>>>
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+
+
