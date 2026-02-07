@@ -7,6 +7,5 @@ def main():
     print("Connection Status:", connection_check(settings.DB_ALEMBIC_URL))
 
 
-
 if __name__ == "__main__":
     main()

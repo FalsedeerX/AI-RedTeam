@@ -18,11 +18,45 @@
         // EmailEntry Component
         function EmailEntry({ onVerify }) {
             const [email, setEmail] = React.useState('');
+            const [isLoading, setIsLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
 
-            const handleSubmit = (e) => {
+            // fucntion handles api call
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (email.trim()) {
-                    onVerify(email);
+                if (!email.trim()) {
+                    setError('Please enter an email.');
+                    return;
+                }
+                
+                setIsLoading(true);
+                setError('');
+
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email: email }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        
+                        onVerify(data.username, data.email);
+                    } else {
+                    
+                        setError(data.message || 'Verification failed.');
+                    }
+
+                } catch (err) {
+                
+                    console.error('Fetch error:', err);
+                    setError('Could not connect to the server. Is it running?');
+                } finally {
+                    setIsLoading(false);
                 }
             };
 
@@ -40,12 +74,15 @@
                                 placeholder="Enter your email"
                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-black"
                                 required
+                                disabled={isLoading}
                             />
+                            {error && <p className="text-red-500 text-sm">{error}</p>}
                             <button
                                 type="submit"
-                                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                disabled={isLoading}
                             >
-                                Verify
+                                {isLoading ? 'Verifying...' : 'Verify'}
                             </button>
                         </form>
                     </div>
@@ -53,130 +90,846 @@
             );
         }
 
-        // Dashboard Component
-        function Dashboard({ userEmail }) {
-            const [scanType, setScanType] = React.useState({
-                ipRange: false,
-                websiteUrl: false,
-                githubRepo: false
-            });
-            const [inputValue, setInputValue] = React.useState('');
-
-            const handleScanTypeChange = (type) => {
-                setScanType(prev => ({
-                    ...prev,
-                    [type]: !prev[type]
-                }));
-            };
-
-            const handleAttack = () => {
-                console.log('Attack clicked with:', inputValue, scanType);
-            };
-
-            const username = userEmail ? userEmail.split('@')[0] : 'User123';
-
+        // TermsModal Component
+        // Legal Airlock - User must accept terms before proceeding
+        function TermsModal({ username, email, onAccept, onDecline }) {
             return (
-                <div className="min-h-screen bg-white">
-                    <div className="container mx-auto px-8 py-12">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                            {/* Left Side */}
-                            <div className="space-y-6">
-                                <h1 className="text-5xl font-bold text-black">
-                                    Welcome, {username}
-                                </h1>
-                                <p className="text-lg text-black leading-relaxed">
-                                    Thank you for joining us on a journey to empower people all across the globe to secure their websites and software: its a pleasure to have you.
-                                </p>
+                <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+                    <div className="max-w-3xl w-full mx-4 bg-gray-800 rounded-lg shadow-2xl border-2 border-yellow-500">
+                        {/* Header */}
+                        <div className="bg-gray-900 p-6 border-b-2 border-yellow-500">
+                            <h1 className="text-3xl font-bold text-yellow-400 text-center mb-2">
+                                ⚖️ LEGAL AGREEMENT REQUIRED
+                            </h1>
+                            <p className="text-gray-300 text-center">
+                                Please review and accept the terms before proceeding
+                            </p>
+                        </div>
+
+                        {/* Scrollable Legal Text */}
+                        <div className="p-6">
+                            <div className="bg-gray-900 rounded-lg p-6 h-96 overflow-y-auto border border-gray-700">
+                                <div className="text-white font-mono text-sm leading-relaxed space-y-4">
+                                    <h2 className="text-xl font-bold text-center mb-4 text-yellow-400">
+                                        AI REDTEAM – END USER LICENSE & LIABILITY AGREEMENT
+                                    </h2>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className="font-bold text-yellow-300 mb-2">1. AUTHORIZED USE ONLY:</h3>
+                                            <p className="text-gray-300">
+                                                You acknowledge that this software is a dual-use security tool. You agree to use AI RedTeam SOLELY for defensive auditing of systems you own or have explicit written permission to test. Unauthorized scanning of third-party networks is a violation of the Computer Fraud and Abuse Act (CFAA) (18 U.S.C. § 1030).
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-yellow-300 mb-2">2. NO WARRANTY & DATA LOSS:</h3>
+                                            <p className="text-gray-300">
+                                                This software utilizes autonomous AI agents to execute active exploits. While safeguards are in place, you acknowledge that use of this tool carries inherent risks of service disruption, data corruption, or system instability. The developers provide this software "AS IS" without warranty of any kind.
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-yellow-300 mb-2">3. INDEMNIFICATION:</h3>
+                                            <p className="text-gray-300">
+                                                You agree to assume full legal and operational liability for all actions taken by the AI agent under your command. You hereby indemnify and hold harmless the AI RedTeam developers and Purdue University from any legal claims, damages, or liabilities arising from your use of this tool.
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-yellow-300 mb-2">4. AUDIT LOGGING:</h3>
+                                            <p className="text-gray-300">
+                                                You acknowledge that all engagement activities, including target scopes and executed commands, are cryptographically logged to a local immutable ledger for forensic purposes.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 pt-4 border-t border-gray-700">
+                                        <p className="text-center text-gray-400 text-xs">
+                                            By clicking "I Accept" below, you acknowledge that you have read, understood, and agree to be bound by this agreement.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Right Side */}
-                            <div className="space-y-6">
-                                <h2 className="text-2xl font-semibold text-black">
-                                    Select scan type (what input you will be providing)
-                                </h2>
-                                
-                                <div className="space-y-4">
-                                    <label className="flex items-center space-x-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={scanType.ipRange}
-                                            onChange={() => handleScanTypeChange('ipRange')}
-                                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="text-lg text-black">IP Range</span>
-                                    </label>
-                                    
-                                    <label className="flex items-center space-x-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={scanType.websiteUrl}
-                                            onChange={() => handleScanTypeChange('websiteUrl')}
-                                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="text-lg text-black">Website URL</span>
-                                    </label>
-                                    
-                                    <label className="flex items-center space-x-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={scanType.githubRepo}
-                                            onChange={() => handleScanTypeChange('githubRepo')}
-                                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="text-lg text-black">GitHub Repo</span>
-                                    </label>
-                                </div>
+                            {/* User Info */}
+                            <div className="mt-4 text-center text-gray-400 text-sm">
+                                <p>Agreement for: <span className="text-white font-semibold">{username}</span> ({email})</p>
                             </div>
                         </div>
 
-                        {/* Input and Attack Button Section */}
-                        <div className="mt-12 relative">
-                            {/* Decorative green line from left */}
-                            <div className="absolute left-0 top-0 w-1/3 h-1 bg-green-500 transform -translate-y-1/2">
-                                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2">
-                                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center space-x-4 max-w-4xl">
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder="Ex. http://example.com/"
-                                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-black"
-                                />
-                                <button
-                                    onClick={handleAttack}
-                                    className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors uppercase tracking-wide"
-                                >
-                                    ATTACK
-                                </button>
-                            </div>
-
-                            {/* Decorative green line from attack button */}
-                            <div className="absolute right-0 top-0 w-1/4 h-1 bg-green-500 transform translate-y-1/2 rotate-12 origin-right">
-                                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2">
-                                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>
+                        {/* Action Buttons */}
+                        <div className="p-6 bg-gray-900 border-t-2 border-gray-700 flex gap-4">
+                            <button
+                                onClick={onDecline}
+                                className="flex-1 bg-red-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-red-700 transition-colors text-lg"
+                            >
+                                ❌ Decline
+                            </button>
+                            <button
+                                onClick={onAccept}
+                                className="flex-1 bg-green-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-green-700 transition-colors text-lg"
+                            >
+                                ✓ I Accept
+                            </button>
                         </div>
                     </div>
                 </div>
             );
         }
 
+        // ScopeConfig Component
+        function ScopeConfig({ username, email, onStartScan }) {
+            const [scanType, setScanType] = React.useState('web');
+            const [targets, setTargets] = React.useState('');
+            const [confirmation, setConfirmation] = React.useState('');
+            
+            const isAuthorized = confirmation === 'I AUTHORIZE';
+            
+            // Dynamic placeholder based on scan type
+            const placeholder = scanType === 'web' 
+                ? 'https://site1.com, https://site2.com'
+                : '192.168.1.0/24, 10.0.0.5';
+            
+            const handleStartScan = () => {
+                if (isAuthorized) {
+                    // Parse comma-separated targets
+                    const targetList = targets.split(',').map(t => t.trim()).filter(t => t);
+                    onStartScan(scanType, targetList);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                    <div className="max-w-2xl w-full mx-4 p-8 bg-gray-800 rounded-lg shadow-xl">
+                        <h1 className="text-3xl font-bold text-white mb-2">
+                            Scope Configuration
+                        </h1>
+                        <p className="text-gray-400 mb-8">
+                            Welcome, {username}
+                        </p>
+                        
+                        <div className="space-y-6">
+                            {/* Scan Type Radio Group */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-3">
+                                    Scan Type
+                                </label>
+                                <div className="space-y-3">
+                                    <label className="flex items-center space-x-3 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="scanType"
+                                            value="web"
+                                            checked={scanType === 'web'}
+                                            onChange={(e) => setScanType(e.target.value)}
+                                            className="w-4 h-4 text-blue-600 border-gray-600 focus:ring-blue-500 bg-gray-700"
+                                        />
+                                        <span className="text-gray-300">Web Target (URL)</span>
+                                    </label>
+                                    <label className="flex items-center space-x-3 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="scanType"
+                                            value="network"
+                                            checked={scanType === 'network'}
+                                            onChange={(e) => setScanType(e.target.value)}
+                                            className="w-4 h-4 text-blue-600 border-gray-600 focus:ring-blue-500 bg-gray-700"
+                                        />
+                                        <span className="text-gray-300">Network Target (IP Range)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Targets Textarea */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Target(s) <span className="text-gray-500">(comma-separated for multiple)</span>
+                                </label>
+                                <textarea
+                                    value={targets}
+                                    onChange={(e) => setTargets(e.target.value)}
+                                    placeholder={placeholder}
+                                    rows="4"
+                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-500 resize-none"
+                                />
+                            </div>
+
+                            {/* Warning Label */}
+                            <div className="bg-red-900 bg-opacity-30 border border-red-500 rounded-lg p-4">
+                                <p className="text-red-400 font-semibold text-center">
+                                    ⚠️ Unauthorized testing is a violation of the CFAA.
+                                </p>
+                            </div>
+
+                            {/* Confirmation Input */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Type "I AUTHORIZE" to confirm permission
+                                </label>
+                                <input
+                                    type="text"
+                                    value={confirmation}
+                                    onChange={(e) => setConfirmation(e.target.value)}
+                                    placeholder="I AUTHORIZE"
+                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-500"
+                                />
+                            </div>
+
+                            {/* Start Scan Button */}
+                            <button
+                                onClick={handleStartScan}
+                                disabled={!isAuthorized}
+                                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+                            >
+                                Start Scan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ReportView Component
+        // Professional business report displayed after scan completion
+        function ReportView({ targets, logs, reportType, onDownloadPDF, onStartNewScan }) {
+            const timestamp = new Date().toLocaleString();
+            const targetDisplay = targets.join(', ');
+            
+            // Determine content based on report type
+            const isSQLInjection = reportType === 'sql_injection';
+            const isSensitiveData = reportType === 'sensitive_data';
+
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
+                    <div className="max-w-4xl w-full bg-white rounded-lg shadow-2xl p-8 border-2 border-gray-300">
+                        {/* Header */}
+                        <div className="border-b-2 border-gray-300 pb-6 mb-6">
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                                Security Assessment Report
+                            </h1>
+                            <div className="flex justify-between items-center text-gray-600">
+                                <div>
+                                    <p className="text-lg">
+                                        <span className="font-semibold">Target:</span> {targetDisplay}
+                                    </p>
+                                    <p className="text-sm mt-1">
+                                        <span className="font-semibold">Generated:</span> {timestamp}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm">AI RedTeam Platform</p>
+                                    <p className="text-xs text-gray-500">Purdue University</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Security Score Card - Conditional */}
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Security Scorecard</h2>
+                            
+                            {isSQLInjection && (
+                                <div className="flex items-center gap-8 bg-red-50 border-2 border-red-300 rounded-lg p-6">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-32 h-32 rounded-full bg-red-600 flex items-center justify-center border-4 border-red-800">
+                                            <span className="text-6xl font-bold text-white">F</span>
+                                        </div>
+                                        <p className="text-center mt-2 font-bold text-red-800">Security Score</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-lg font-semibold text-gray-900 mb-2">
+                                            Critical Vulnerabilities Detected
+                                        </p>
+                                        <p className="text-gray-700">
+                                            Your application contains high-severity security flaws that require immediate attention. 
+                                            Exploitation of these vulnerabilities could lead to complete system compromise.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {isSensitiveData && (
+                                <div className="flex items-center gap-8 bg-orange-50 border-2 border-orange-400 rounded-lg p-6">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-32 h-32 rounded-full bg-orange-500 flex items-center justify-center border-4 border-orange-700">
+                                            <span className="text-6xl font-bold text-white">C-</span>
+                                        </div>
+                                        <p className="text-center mt-2 font-bold text-orange-800">Security Score</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-lg font-semibold text-gray-900 mb-2">
+                                            High-Risk Data Exposure Detected
+                                        </p>
+                                        <p className="text-gray-700">
+                                            Sensitive backup files are publicly accessible, potentially exposing confidential data. 
+                                            While less severe than active exploitation, this represents a significant security risk.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Findings Section - Conditional */}
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">Vulnerability Findings</h2>
+                            
+                            {isSQLInjection && (
+                                <div className="space-y-4">
+                                    <div className="border-2 border-red-400 rounded-lg p-6 bg-red-50">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-3xl">🔴</span>
+                                            <div className="flex-1">
+                                                <h3 className="text-xl font-bold text-red-800 mb-2">
+                                                    Critical: SQL Injection Vulnerability
+                                                </h3>
+                                                <p className="text-gray-700 mb-2">
+                                                    <span className="font-semibold">CWE-89:</span> Improper Neutralization of Special Elements used in an SQL Command
+                                                </p>
+                                                <p className="text-gray-700 mb-2">
+                                                    <span className="font-semibold">Location:</span> Login form authentication endpoint
+                                                </p>
+                                                <p className="text-gray-700">
+                                                    <span className="font-semibold">Risk:</span> Attackers can bypass authentication, extract sensitive data, 
+                                                    modify database contents, or execute administrative operations.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-semibold">CVSS Score:</span> 9.8 (Critical) | 
+                                            <span className="font-semibold"> Impact:</span> Confidentiality Loss, Integrity Loss, Availability Loss
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {isSensitiveData && (
+                                <div className="space-y-4">
+                                    <div className="border-2 border-orange-400 rounded-lg p-6 bg-orange-50">
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-3xl">🟠</span>
+                                            <div className="flex-1">
+                                                <h3 className="text-xl font-bold text-orange-800 mb-2">
+                                                    High: Sensitive Data Exposure
+                                                </h3>
+                                                <p className="text-gray-700 mb-2">
+                                                    <span className="font-semibold">CWE-200:</span> Exposure of Sensitive Information to an Unauthorized Actor
+                                                </p>
+                                                <p className="text-gray-700 mb-2">
+                                                    <span className="font-semibold">Location:</span> Publicly accessible backup file (database.bak)
+                                                </p>
+                                                <p className="text-gray-700">
+                                                    <span className="font-semibold">Risk:</span> Unprotected backup file found publicly accessible. 
+                                                    Contains sensitive database information including user credentials and personal data.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-semibold">CVSS Score:</span> 7.5 (High) | 
+                                            <span className="font-semibold"> Impact:</span> Confidentiality Loss
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Remediation Section - Conditional */}
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">AI-Generated Remediation</h2>
+                            
+                            {isSQLInjection && (
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <span className="text-2xl">🤖</span>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                                Recommended Fix
+                                            </h3>
+                                            <p className="text-gray-700 mb-3">
+                                                Replace all dynamic SQL query construction with parameterized prepared statements 
+                                                to ensure user input is properly sanitized.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded overflow-x-auto">
+                                        <p className="text-gray-500"># Before (Vulnerable):</p>
+                                        <p className="text-red-400">query = "SELECT * FROM users WHERE username='" + user_input + "'"</p>
+                                        <p className="mt-2 text-gray-500"># After (Secure):</p>
+                                        <p className="text-green-400">query = "SELECT * FROM users WHERE username=?"</p>
+                                        <p className="text-green-400">cursor.execute(query, (user_input,))</p>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-4">
+                                        <span className="font-semibold">Priority:</span> Immediate | 
+                                        <span className="font-semibold"> Effort:</span> Low | 
+                                        <span className="font-semibold"> Effectiveness:</span> High
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {isSensitiveData && (
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <span className="text-2xl">🤖</span>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                                Recommended Fix
+                                            </h3>
+                                            <p className="text-gray-700 mb-3">
+                                                Restrict access to .bak files in web server configuration to prevent public access to sensitive backup files.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded overflow-x-auto">
+                                        <p className="text-gray-500"># Apache .htaccess:</p>
+                                        <p className="text-green-400">&lt;FilesMatch "\.(bak|backup|old|sql)$"&gt;</p>
+                                        <p className="text-green-400">  Require all denied</p>
+                                        <p className="text-green-400">&lt;/FilesMatch&gt;</p>
+                                        <p className="mt-2 text-gray-500"># Nginx configuration:</p>
+                                        <p className="text-green-400">location ~* \.(bak|backup|old|sql)$ &#123;</p>
+                                        <p className="text-green-400">  deny all;</p>
+                                        <p className="text-green-400">&#125;</p>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-4">
+                                        <span className="font-semibold">Priority:</span> High | 
+                                        <span className="font-semibold"> Effort:</span> Low | 
+                                        <span className="font-semibold"> Effectiveness:</span> High
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4 pt-6 border-t-2 border-gray-300">
+                            <button
+                                onClick={onDownloadPDF}
+                                className="flex-1 bg-blue-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-blue-700 transition-colors text-lg flex items-center justify-center gap-2"
+                            >
+                                <span>📥</span>
+                                <span>Download PDF Report</span>
+                            </button>
+                            <button
+                                onClick={onStartNewScan}
+                                className="flex-1 bg-purple-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-purple-700 transition-colors text-lg flex items-center justify-center gap-2"
+                            >
+                                <span>🔄</span>
+                                <span>Exit & Start New Scan</span>
+                            </button>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-6 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                            <p>This report was generated by AI RedTeam autonomous security assessment platform.</p>
+                            <p className="mt-1">For questions or support, contact the development team at Purdue University.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Dashboard Component
+        // Unified dark theme with backend integration, live terminal, and HITL modal
+        function Dashboard({ username, email, targets, scanType }) {
+            const [logs, setLogs] = React.useState([]);
+            const [scanStatus, setScanStatus] = React.useState('IDLE');
+            const [pendingAction, setPendingAction] = React.useState(null);
+            const [isModalOpen, setIsModalOpen] = React.useState(false);
+            const [scanStarted, setScanStarted] = React.useState(false);
+            const [error, setError] = React.useState('');
+            const [viewingReport, setViewingReport] = React.useState(false);
+            const [reportType, setReportType] = React.useState('sql_injection');
+            const terminalRef = React.useRef(null);
+
+            // Auto-scroll terminal to bottom when new logs arrive
+            React.useEffect(() => {
+                if (terminalRef.current) {
+                    terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+                }
+            }, [logs]);
+
+            // Polling effect - runs every 1 second when scan is started
+            React.useEffect(() => {
+                if (!scanStarted) return;
+
+                const pollInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch('http://127.0.0.1:5000/poll_status');
+                        const data = await response.json();
+
+                        setLogs(data.logs || []);
+                        setScanStatus(data.status);
+                        setPendingAction(data.pending_action);
+                        setReportType(data.report_type || 'sql_injection');
+
+                        // Open modal if approval is needed
+                        if (data.status === 'NEEDS_APPROVAL' && data.pending_action) {
+                            setIsModalOpen(true);
+                        }
+
+                        // Stop polling if completed or terminated
+                        if (data.status === 'COMPLETED' || data.status === 'TERMINATED') {
+                            clearInterval(pollInterval);
+                        }
+                    } catch (err) {
+                        console.error('Polling error:', err);
+                        setError('Lost connection to backend');
+                    }
+                }, 1000);
+
+                return () => clearInterval(pollInterval);
+            }, [scanStarted]);
+
+            const handleBeginRecon = async () => {
+                setError('');
+                setScanStarted(true);
+
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/start_scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            targets: targets,
+                            scan_type: scanType
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        setError(data.message || 'Failed to start scan');
+                        setScanStarted(false);
+                    }
+                } catch (err) {
+                    console.error('Start scan error:', err);
+                    setError('Could not connect to backend. Is the server running?');
+                    setScanStarted(false);
+                }
+            };
+
+            const handleApprove = async () => {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/approve_action', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        setIsModalOpen(false);
+                        setPendingAction(null);
+                    }
+                } catch (err) {
+                    console.error('Approve action error:', err);
+                    setError('Failed to approve action');
+                }
+            };
+
+            const handleDeny = async () => {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/deny_action', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // Close modal and let user watch terminal continue with pivot logs
+                        setIsModalOpen(false);
+                        setPendingAction(null);
+                    } else {
+                        setError('Failed to deny action');
+                    }
+                } catch (err) {
+                    console.error('Deny action error:', err);
+                    setError('Failed to communicate denial to AI');
+                }
+            };
+
+            const handleKillSwitch = async () => {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/kill_scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // Update status to TERMINATED
+                        setScanStatus('TERMINATED');
+                        setIsModalOpen(false);
+                        setPendingAction(null);
+                        setError('⚠️ Session Terminated by Emergency Switch');
+                    } else {
+                        setError('Failed to activate kill switch');
+                    }
+                } catch (err) {
+                    console.error('Kill switch error:', err);
+                    setError('Failed to activate emergency stop');
+                }
+            };
+
+            const handleResetScan = async () => {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/reset_scan', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // Reset all frontend state to initial values
+                        setLogs([]);
+                        setScanStatus('IDLE');
+                        setPendingAction(null);
+                        setIsModalOpen(false);
+                        setScanStarted(false);
+                        setError('');
+                        setViewingReport(false);
+                    } else {
+                        setError('Failed to reset scan');
+                    }
+                } catch (err) {
+                    console.error('Reset scan error:', err);
+                    setError('Could not reset scan');
+                }
+            };
+
+            // Helper function to determine log color based on content
+            const getLogColor = (message) => {
+                if (message.includes('[ALERT]')) return 'text-yellow-400';
+                if (message.includes('[SUCCESS]')) return 'text-cyan-400';
+                return 'text-green-400';
+            };
+
+            const handleDownloadPDF = () => {
+                alert('Downloading comprehensive security report...\n\nReport includes:\n- Executive summary\n- Detailed vulnerability analysis\n- Remediation recommendations\n- CVSS scores and risk assessments');
+            };
+
+            // THIS MUST BE BEFORE THE MAIN RETURN
+            // If user is viewing report, show ReportView instead of terminal
+            if (viewingReport) {
+                return (
+                    <ReportView 
+                        targets={targets}
+                        logs={logs}
+                        reportType={reportType}
+                        onDownloadPDF={handleDownloadPDF}
+                        onStartNewScan={handleResetScan}
+                    />
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+                    <div className="max-w-4xl w-full mx-4 p-8 bg-gray-800 text-white rounded-lg shadow-xl relative">
+                        {/* Emergency Kill Switch Button */}
+                        {(scanStatus === 'RUNNING' || scanStatus === 'NEEDS_APPROVAL') && (
+                            <button
+                                onClick={handleKillSwitch}
+                                className="absolute top-4 right-4 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 border-2 border-red-400 shadow-lg"
+                            >
+                                <span className="text-xl">🛑</span>
+                                <span>Emergency Stop</span>
+                            </button>
+                        )}
+                        
+                        <div className="space-y-6">
+                            {/* Welcome Header */}
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-bold mb-2">
+                                    Welcome, {username}
+                                </h1>
+                                {email && (
+                                    <p className="text-gray-400">
+                                        {email}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Engagement Target Header */}
+                            <div className="mb-6">
+                                <h3 className="text-xl font-semibold text-gray-300">
+                                    Engagement Target: <span className="text-blue-400">{targets.join(', ')}</span>
+                                </h3>
+                            </div>
+
+                            {/* Status Indicator */}
+                            <div className="bg-gray-700 rounded-lg p-4 mb-6">
+                                <p className="text-lg text-gray-200">
+                                    {scanStatus === 'IDLE' && '🟢 AI Agent Online - Waiting for Command'}
+                                    {scanStatus === 'RUNNING' && '🔵 AI Agent Running - Scanning Target...'}
+                                    {scanStatus === 'NEEDS_APPROVAL' && '🟡 AI Agent Paused - Awaiting Authorization'}
+                                    {scanStatus === 'COMPLETED' && '✅ AI Agent Completed - Scan Finished'}
+                                    {scanStatus === 'TERMINATED' && '🔴 AI Agent TERMINATED - Emergency Stop Activated'}
+                                </p>
+                            </div>
+
+                            {/* Error Display */}
+                            {error && (
+                                <div className="bg-red-900 bg-opacity-30 border border-red-500 rounded-lg p-4">
+                                    <p className="text-red-400">{error}</p>
+                                </div>
+                            )}
+
+                            {/* Begin Button (shown before scan starts) */}
+                            {!scanStarted && (
+                                <button
+                                    onClick={handleBeginRecon}
+                                    className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 transition-colors text-lg"
+                                >
+                                    Begin Reconnaissance
+                                </button>
+                            )}
+
+                            {/* Terminal Window (shown after scan starts) */}
+                            {scanStarted && (
+                                <div className="bg-black rounded-lg p-4 border-2 border-green-500">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <span className="text-green-400 font-mono text-sm">
+                                            root@ai-redteam:~#
+                                        </span>
+                                        <span className="text-green-400 font-mono text-xs">
+                                            Status: {scanStatus}
+                                        </span>
+                                    </div>
+                                    <div 
+                                        ref={terminalRef}
+                                        className="h-96 overflow-y-auto text-green-400 font-mono text-sm space-y-1"
+                                    >
+                                        {logs.length === 0 ? (
+                                            <p className="text-green-500 animate-pulse">Initializing AI Agent...</p>
+                                        ) : (
+                                            logs.map((log, index) => (
+                                                <div key={index} className="hover:bg-gray-900">
+                                                    <span className="text-green-600">
+                                                        [{new Date(log.timestamp).toLocaleTimeString()}]
+                                                    </span>
+                                                    {' '}
+                                                    <span className={getLogColor(log.message)}>
+                                                        {log.message}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                        {scanStatus === 'RUNNING' && (
+                                            <p className="text-green-500 animate-pulse">▊</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* View Report Button (shown when scan is completed) */}
+                            {scanStatus === 'COMPLETED' && !viewingReport && (
+                                <button
+                                    onClick={() => setViewingReport(true)}
+                                    className="w-full bg-green-600 text-white font-bold py-4 rounded-lg hover:bg-green-700 transition-colors text-lg mt-6"
+                                >
+                                    📄 View Security Assessment Report
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* HITL Modal Overlay */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+                            <div className="bg-gray-800 rounded-lg p-8 max-w-lg w-full mx-4 border-4 border-yellow-500 shadow-2xl">
+                                {/* Header */}
+                                <div className="text-center mb-6">
+                                    <h2 className="text-3xl font-bold text-yellow-400 mb-2">
+                                        ⚠️ CRITICAL SAFETY INTERVENTION REQUIRED
+                                    </h2>
+                                    <p className="text-red-400 font-semibold">
+                                        Human-in-the-Loop Authorization Needed
+                                    </p>
+                                </div>
+
+                                {/* Body */}
+                                <div className="bg-gray-900 rounded-lg p-6 mb-6">
+                                    <p className="text-white text-lg mb-2">
+                                        <span className="font-bold">Pending Action:</span>
+                                    </p>
+                                    <p className="text-yellow-300 text-xl font-mono">
+                                        {pendingAction}
+                                    </p>
+                                </div>
+
+                                <div className="bg-red-900 bg-opacity-30 border border-red-500 rounded-lg p-4 mb-6">
+                                    <p className="text-red-300 text-sm">
+                                        ⚠️ This action could have significant impact. Review carefully before proceeding.
+                                    </p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={handleDeny}
+                                        className="flex-1 bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition-colors"
+                                    >
+                                        ❌ DENY
+                                    </button>
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        ✓ APPROVE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         // Main App Component
+        // Updated flow: email -> terms-agreement -> scope-config -> dashboard
         function App() {
             const [currentPage, setCurrentPage] = React.useState('email');
-            const [userEmail, setUserEmail] = React.useState('');
+            const [username, setUsername] = React.useState('');
+            const [email, setEmail] = React.useState('');
+            const [scanType, setScanType] = React.useState('');
+            const [targets, setTargets] = React.useState([]);
 
-            const handleVerify = (email) => {
-                setUserEmail(email);
+            const handleVerify = (name, userEmail) => {
+                setUsername(name);
+                setEmail(userEmail);
+                // Transition to terms agreement (Legal Airlock)
+                setCurrentPage('terms-agreement');
+            };
+
+            const handleTermsAccepted = () => {
+                // User accepted terms, proceed to scope configuration
+                setCurrentPage('scope-config');
+            };
+
+            const handleTermsDeclined = () => {
+                // User declined terms, return to email entry
+                setCurrentPage('email');
+                // Clear user data
+                setUsername('');
+                setEmail('');
+            };
+
+            const handleStartScan = (type, targetList) => {
+                setScanType(type);
+                setTargets(targetList);
                 setCurrentPage('dashboard');
             };
 
@@ -184,8 +937,26 @@
                 <div>
                     {currentPage === 'email' ? (
                         <EmailEntry onVerify={handleVerify} />
+                    ) : currentPage === 'terms-agreement' ? (
+                        <TermsModal 
+                            username={username} 
+                            email={email} 
+                            onAccept={handleTermsAccepted}
+                            onDecline={handleTermsDeclined}
+                        />
+                    ) : currentPage === 'scope-config' ? (
+                        <ScopeConfig 
+                            username={username} 
+                            email={email} 
+                            onStartScan={handleStartScan}
+                        />
                     ) : (
-                        <Dashboard userEmail={userEmail} />
+                        <Dashboard 
+                            username={username} 
+                            email={email} 
+                            targets={targets} 
+                            scanType={scanType} 
+                        />
                     )}
                 </div>
             );
@@ -195,4 +966,3 @@
     </script>
 </body>
 </html>
-

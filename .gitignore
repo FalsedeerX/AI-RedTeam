@@ -182,13 +182,25 @@ logs
 node_modules
 bower_components
 
+
+# VSCode Settings
+.vscode/
+
+docs/notes/
+backend/emails.json
+sa ple_log.json
+
 *.sublime*
 
 psd
 thumb
 sketch
 
+#never commit node deps
+node_modules/
+**/node_modules/
 # End of https://www.toptal.com/developers/gitignore/api/python,react
 
 backend/emails.json
 sa ple_log.json
+
