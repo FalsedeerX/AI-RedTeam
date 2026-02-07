@@ -19,6 +19,15 @@ Team S06 – Fall 2025 - Spring 2026
 
 ---
 
+
+
+
+
+
+
+## EVERYTHING BELOW IS OUTDATED. PLEASE IGNORE
+
+
 ## Setup & Installation
 
 ### 1. Create and Activate Virtual Environment
