@@ -1,5 +1,5 @@
 import React from 'react';
-export default function ReportView({ targets, logs, reportType, onDownloadPDF, onStartNewScan }) {
+export default function ReportView({ targets, reportType, onDownloadPDF, onStartNewScan }) {
   const timestamp = new Date().toLocaleString();
   const targetDisplay = targets.join(', ');
   
