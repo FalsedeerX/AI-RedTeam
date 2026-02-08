@@ -1,0 +1,1 @@
+{"users": {"1": {"username": "operator", "password": "redteam", "role": "analyst", "created_at": "2026-02-08T22:44:32.728599"}}, "targets": {"1": {"id": "tgt-001", "url": "https://example.com", "scope": "external", "added_at": "2026-02-08T22:44:32.742279"}}, "metrics": {"1": {"total_scans": 12, "total_findings": 37, "last_scan": "2026-02-08T22:44:32.747368"}}}
