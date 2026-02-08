@@ -23,7 +23,6 @@ def start_scan(target_id: str):
         "engine": "ai-agent-v1",
     })
 
-    # Fake AI-generated findings
     for title, severity in random.sample(VULNS, k=2):
         findings.insert({
             "scan_id": scan_id,
