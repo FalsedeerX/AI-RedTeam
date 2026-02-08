@@ -2,7 +2,6 @@ import os
 from langchain_community.document_loaders import PDFPlumberLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import shutil
 

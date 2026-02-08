@@ -1,15 +1,8 @@
-numpy
 langchain
+langgraph
 langchain-community
-langchain-huggingface
 langchain-chroma
+langchain-ollama
 chromadb==1.4.0
-sentence-transformers
 python-dotenv
 pdfplumber
-fastapi
-pandas
-langchain-ollama
-duckduckgo-search
-ddgs
-IPython
