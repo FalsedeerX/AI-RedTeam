@@ -1,4 +1,4 @@
-from db import scans, findings
+from ..db import scans, findings
 from datetime import datetime
 from uuid import uuid4
 import random

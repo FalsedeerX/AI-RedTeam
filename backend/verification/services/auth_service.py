@@ -1,6 +1,6 @@
 from uuid import uuid4
-from db import users, audit_logs, User
 from datetime import datetime
+from ..db import users, audit_logs, User
 
 def login(username, password):
     user = users.get(User.username == username)
