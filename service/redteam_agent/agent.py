@@ -138,6 +138,17 @@ class RedTeamAgent:
         
         return "tool_node"
 
+
+    def save_graph_image(self, file_path="graph.png"):
+        """Generate and save the graph structure as an image."""
+        try:
+            graph_png = self.app.get_graph(xray=True).draw_mermaid_png()
+            with open(file_path, "wb") as f:
+                f.write(graph_png)
+            print(f"Graph image saved to '{file_path}'")
+        except Exception as e:
+            print(f"Could not save graph image: {e}")
+
     # --- Graph Construction ---
 
     def _build_graph(self):
@@ -169,8 +180,6 @@ class RedTeamAgent:
 
 def get_agent():
     """
-    Factory function to get the compiled graph.
-    Returns a singleton-like or fresh instance depending on needs.
-    Here we return a fresh one to be safe, or cache it.
+    Factory function to get the agent with compiled graph.
     """
-    return RedTeamAgent().app
+    return RedTeamAgent()

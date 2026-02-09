@@ -1,16 +1,15 @@
-import sys
-import os
-from langchain_core.messages import HumanMessage
-
 # Create a test script to verify the RAG Agent implementation
 # Must be run from the project root or Ensure 'service' is in path
 # Usage: python service/test_agent.py
 
-# Add current directory to path so we can import 'rag' package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+import sys
+import os
+from langchain_core.messages import HumanMessage
 from redteam_agent import ingest_documents, get_agent, config
 from redteam_agent.vector_store import clear_vector_store
+
+# Add current directory to path so we can import 'rag' package
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def main():
     print("=== AI RedTeam Agent Test ===")
@@ -50,7 +49,11 @@ def main():
         
     try:
         print("Initializing Agent Graph...")
-        graph = get_agent()
+        agent = get_agent()
+        graph = agent.app
+        
+        print("Saving graph structure as image... (agent_graph.png)")
+        agent.save_graph_image("agent_graph.png")
         
         print(f"\nQuerying: {query}")
         print("-" * 50)
