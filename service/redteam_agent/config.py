@@ -6,7 +6,7 @@ load_dotenv()
 class RAGConfig:
     # Use an absolute path or relative to the service execution
     # Defaulting to a folder named 'chroma_db' inside the service directory
-    CHROMA_PERSIST_DIRECTORY = os.getenv("CHROMA_PERSIST_DIRECTORY", "./chroma_db")
+    CHROMA_PERSIST_DIRECTORY = os.getenv("CHROMA_PERSIST_DIRECTORY", "./service/redteam_agent/chroma_db")
     
     # Model configuration
     # Updated based on demo_graph.py
@@ -15,6 +15,7 @@ class RAGConfig:
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434")
     
     # RAG parameters
+    DOCS_SOURCE_DIRECTORY = os.getenv("DOCS_SOURCE_DIRECTORY", "./service/redteam_agent/lib")
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "example_collection")

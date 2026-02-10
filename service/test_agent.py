@@ -18,16 +18,13 @@ def main():
     print(f" - LLM: {config.LLM_MODEL_NAME}")
     print(f" - ChromaDB: {config.CHROMA_PERSIST_DIRECTORY}")
     
-    # Define docs directory (assuming ../docs relative to this script)
-    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "service/rag/lib/"))
-    
     print(f"\n[1] Check/Ingest Documents")
-    print(f"Target directory: {docs_dir}")
+    print(f"Target directory: {config.DOCS_SOURCE_DIRECTORY}")
     choice = input("Do you want to run document ingestion? (y/n/c[lear]): ").strip().lower()
     
     if choice == 'y':
         try:
-            ingest_documents(docs_dir)
+            ingest_documents(config.DOCS_SOURCE_DIRECTORY)
         except Exception as e:
             print(f"Ingestion failed: {e}")
             return
@@ -35,7 +32,7 @@ def main():
         print("Clearing vector store...")
         clear_vector_store()
         print("Ingesting new documents...")
-        ingest_documents(docs_dir)
+        ingest_documents(config.DOCS_SOURCE_DIRECTORY)
     else:
         print("Skipping ingestion.")
 
