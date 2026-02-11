@@ -7,7 +7,6 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_chroma import Chroma
 from typing import Literal
 from typing_extensions import TypedDict, Annotated
-from IPython.display import Image, display
 import operator
 
 os.environ["LANGSMITH_TRACING"] = "true"
