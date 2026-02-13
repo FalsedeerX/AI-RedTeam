@@ -4,7 +4,7 @@ import glob
 from typing import List
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PDFPlumberLoader, TextLoader, DirectoryLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
 from .config import config
 from .embeddings import get_embeddings
@@ -38,6 +38,11 @@ class RAGVectorStore:
             List[Document]: List of loaded documents.
         """
         documents = []
+        headers_to_split_on = [     # Headers to split on
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+        ]
         
         # Check if directory exists
         if not os.path.exists(src):
@@ -50,7 +55,6 @@ class RAGVectorStore:
         for pdf_path in pdf_files:
             try:
                 loader = PDFPlumberLoader(pdf_path)
-                # print(loader.load()) # Optional debug
                 documents.extend(loader.load())
                 print(f"Loaded {pdf_path}")
             except Exception as e:
@@ -59,13 +63,29 @@ class RAGVectorStore:
         # Load Markdown
         md_pattern = os.path.join(src, "**/*.md")
         md_files = glob.glob(md_pattern, recursive=True)
+        md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
         for md_path in md_files:
             try:
-                loader = TextLoader(md_path, encoding='utf-8')
-                documents.extend(loader.load())
+                with open(md_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                md_header_splits = md_splitter.split_text(content)
+                for doc in md_header_splits:
+                    doc.metadata['source'] = md_path
+                documents.extend(md_header_splits)
                 print(f"Loaded {md_path}")
             except Exception as e:
                 print(f"Error loading Markdown {md_path}: {e}")
+
+        # Load Plain Text
+        txt_pattern = os.path.join(src, "**/*.txt")
+        txt_files = glob.glob(txt_pattern, recursive=True)
+        for txt_path in txt_files:
+            try:
+                loader = TextLoader(txt_path, encoding='utf-8')
+                documents.extend(loader.load())
+                print(f"Loaded {txt_path}")
+            except Exception as e:
+                print(f"Error loading Text {txt_path}: {e}")
 
         return documents
 
