@@ -1,7 +1,8 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Enum, String, Text, DateTime, text, LargeBinary, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Enum, String, Text, DateTime, text, func, ForeignKey
 from app.domain.runs import RunType, RunPurpose, RunStatus, RunOutputFormat
 from app.core.config import settings
 from app.db.base import Base
@@ -9,7 +10,10 @@ from datetime import datetime
 import uuid
 
 if TYPE_CHECKING:
-    pass
+    from .projects import Projects
+    from .targets import Targets
+    from .findings import Findings
+    from .reports import Reports
 
 
 class Runs(Base):
@@ -28,4 +32,12 @@ class Runs(Base):
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     output_format: Mapped[RunOutputFormat] = mapped_column(Enum(RunOutputFormat, name="run_output_format_enum", schema=settings.DB_SCHEMA, native_enum=True), nullable=True)
 
-    # foreign key and relationship
+    # foreign keys
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(f"{settings.DB_SCHEMA}.projects.id", ondelete="CASCADE"), nullable=False)
+    target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(f"{settings.DB_SCHEMA}.targets.id", ondelete="SET NULL"), nullable=True)
+
+    # relationships
+    project: Mapped[Projects] = relationship("Projects", back_populates="runs")
+    target: Mapped[Targets | None] = relationship("Targets", back_populates="runs")
+    findings: Mapped[list[Findings]] = relationship("Findings", back_populates="run", cascade="all, delete-orphan")
+    reports: Mapped[list[Reports]] = relationship("Reports", back_populates="run", cascade="all, delete-orphan")
