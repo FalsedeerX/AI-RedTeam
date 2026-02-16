@@ -204,5 +204,8 @@ node_modules/
 backend/emails.json
 sa ple_log.json
 
+service/redteam_agent/lib/
+service/redteam_agent/chroma_db/
 service/redteam_agent/chromadb_data/
 service/chroma_db/
+agent_graph.png

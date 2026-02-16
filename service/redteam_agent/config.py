@@ -6,8 +6,15 @@ load_dotenv()
 class RAGConfig:
     # Use an absolute path or relative to the service execution
     # Defaulting to a folder named 'chroma_db' inside the service directory
-    CHROMA_PERSIST_DIRECTORY = os.getenv("CHROMA_PERSIST_DIRECTORY", "./service/redteam_agent/chroma_db")
-    
+
+    # Paths relative to this package so they work regardless of CWD
+    _CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    CHROMA_PERSIST_DIRECTORY = os.getenv(
+        "CHROMA_PERSIST_DIRECTORY",
+        os.path.join(_CONFIG_DIR, "chroma_db"),
+    )
+
     # Model configuration
     # Updated based on demo_graph.py
     EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "bge-m3")
@@ -15,7 +22,10 @@ class RAGConfig:
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434")
     
     # RAG parameters
-    DOCS_SOURCE_DIRECTORY = os.getenv("DOCS_SOURCE_DIRECTORY", "./service/redteam_agent/lib")
+    DOCS_SOURCE_DIRECTORY = os.getenv(
+        "DOCS_SOURCE_DIRECTORY",
+        os.path.join(_CONFIG_DIR, "lib"),
+    )
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1000"))
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "example_collection")
@@ -45,8 +55,8 @@ Rules:
 """
 
     def __init__(self):
-        os.environ["LANGSMITH_TRACING"] = "true"
-        os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-        os.environ["LANGSMITH_PROJECT"] = "My First App"
+        # Disable LangSmith unless user opts in (avoids 401 noise when not configured)
+        if os.environ.get("LANGSMITH_TRACING") is None:
+            os.environ["LANGSMITH_TRACING"] = "false"
 
 config = RAGConfig()

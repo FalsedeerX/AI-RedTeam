@@ -6,3 +6,4 @@ langchain-ollama
 chromadb==1.4.0
 python-dotenv
 pdfplumber
+fastmcp
