@@ -9,6 +9,5 @@ def main():
     print("Migrate Connection Status:", connection_check(settings.DB_MIGRATE_URL))
 
 
-
 if __name__ == "__main__":
     main()

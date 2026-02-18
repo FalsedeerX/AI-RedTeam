@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
-from services.auth_service import login
-from services.scan_service import start_scan
-from services.report_service import generate_report
+from .services.auth_service import login
+from .services.scan_service import start_scan
+from .services.report_service import generate_report
 
 app = Flask(__name__)
 

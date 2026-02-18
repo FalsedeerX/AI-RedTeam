@@ -1,7 +1,11 @@
+from pathlib import Path
 from tinydb import TinyDB, Query
 from datetime import datetime
 
-db = TinyDB("data/database.json")
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "data" / "database.json"
+db = TinyDB(DB_PATH)
+
 
 users = db.table("users")
 targets = db.table("targets")
