@@ -6,6 +6,7 @@
 DB_PORT=5432
 DB_HOST=localhost
 DB_NAME=airedteam
+DB_SCHEMA=app
 
 # master password (database owner)
 DB_OWNER_USER=aesir
