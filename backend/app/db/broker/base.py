@@ -13,12 +13,12 @@ class BaseBroker(Generic[T]):
     def __init__(self, model: Type[T]):
         self.model = model
 
-    def select(self, primary_key: Any) -> Optional[T]:
+    def get(self, primary_key: Any) -> Optional[T]:
         """ Retrieve entry by primary key, return selected entry """
         with get_session() as session:
             return session.get(self.model, primary_key)
 
-    def select_by_filters(self, filters: dict[str, Any]) -> Sequence[T]:
+    def get_bulk(self, filters: dict[str, Any]) -> Sequence[T]:
         """ Query in bulk by custom filters in dictionary, return selected entries in sequence """
         with get_session() as session:
             query = select(self.model).filter_by(**filters)
@@ -33,7 +33,7 @@ class BaseBroker(Generic[T]):
             session.refresh(entry)
             return entry
 
-    def update(self, primary_key: Any, values: dict[str, Any]) -> Optional[T]:
+    def apply(self, primary_key: Any, values: dict[str, Any]) -> Optional[T]:
         """ Update a single entry via the provided primary key, return modified entry """
         if not values: return None
         with get_session() as session:
@@ -47,7 +47,7 @@ class BaseBroker(Generic[T]):
             session.refresh(entry)
             return entry
 
-    def update_by_filter(self, filters: dict[str, Any], values: dict[str, Any]) -> int:
+    def apply_bulkj(self, filters: dict[str, Any], values: dict[str, Any]) -> int:
         """ Update in bulk by custom filters in dictionary, return total updated rows count """
         if not values: return 0
         if not filters: raise ValueError("Refuse to update without filters")
@@ -56,7 +56,7 @@ class BaseBroker(Generic[T]):
             result = cast(CursorResult, session.execute(stmt))
             return result.rowcount or 0
 
-    def delete(self, primary_key: Any) -> bool:
+    def purge(self, primary_key: Any) -> bool:
         """ Delete entry by primary key """
         with get_session() as session:
             entry = session.get(self.model, primary_key)
@@ -64,7 +64,7 @@ class BaseBroker(Generic[T]):
             session.delete(entry)
             return True
 
-    def delete_by_filters(self, filters: dict[str, Any]) -> int:
+    def purge_bulk(self, filters: dict[str, Any]) -> int:
         """ Delete in bulk by cusotm filters in dictionary, return total deleted rows count """
         if not filters: raise ValueError("Refuse to purge without filters")
         with get_session() as session:
