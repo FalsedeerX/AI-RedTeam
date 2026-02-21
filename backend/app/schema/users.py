@@ -4,7 +4,13 @@ from pydantic import BaseModel, EmailStr, SecretStr, Field, ConfigDict
 
 
 class UserCreate(BaseModel):
-    """ User account registration """
+    """ User account registration request """
+    email: EmailStr
+    password: SecretStr = Field(min_length=8)
+
+
+class UserAuth(BaseModel):
+    """ User authentication request """
     email: EmailStr
     password: SecretStr = Field(min_length=8)
 
