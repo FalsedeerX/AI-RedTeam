@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.api.routes.users import UsersRouter
+from app.api.routes import UsersRouter, ProjectsRouter
 
 
 def initialize_server() -> FastAPI:
@@ -11,6 +11,7 @@ def initialize_server() -> FastAPI:
 
 def register_routers(app: FastAPI) -> None:
     app.include_router(UsersRouter().router)
+    app.include_router(ProjectsRouter().router)
 
 
 # create a server instance

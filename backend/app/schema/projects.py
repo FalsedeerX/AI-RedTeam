@@ -1,4 +1,5 @@
 from uuid import UUID
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from app.domain.projects import ProjectStatus
 
@@ -15,6 +16,7 @@ class ProjectSummary(BaseModel):
 
     id: UUID
     name: str
+    created_at: datetime
     project_status: ProjectStatus
     description: str | None = None
 
@@ -25,6 +27,7 @@ class ProjectDetail(BaseModel):
 
     id: UUID
     name: str
+    created_at: datetime
     project_status: ProjectStatus
     description: str | None = None
     target_ids: list[UUID] = []
