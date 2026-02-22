@@ -29,5 +29,4 @@ class ProjectDetail(BaseModel):
     description: str | None = None
     target_ids: list[UUID] = []
     run_ids: list[UUID] = []
-    finding_ids: list[UUID] = []
     report_id: UUID | None = None
