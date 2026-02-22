@@ -3,8 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.schema.users import UserCreate, UserAuth, UserInfo, UserIdentity
 from app.api.deps import get_current_user_id
 from app.core.security import hash_password
-from app.db.broker.users import UsersBroker
-from app.db.models.users import Users
+from app.db.broker import UsersBroker
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -55,3 +54,7 @@ class UsersRouter:
     def update_profile(self):
         """ User self-updating profile information (email/password) """
         pass
+
+
+if __name__ == "__main__":
+    pass
