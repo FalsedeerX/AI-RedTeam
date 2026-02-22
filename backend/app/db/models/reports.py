@@ -10,7 +10,7 @@ from datetime import datetime
 import uuid
 
 if TYPE_CHECKING:
-    from .runs import Runs
+    from .projects import Projects
 
 
 class Reports(Base):
@@ -25,7 +25,7 @@ class Reports(Base):
     report_format: Mapped[ReportFormat] = mapped_column(Enum(ReportFormat, name="report_format_enum", schema=settings.DB_SCHEMA, native_enum=True), nullable=False)
 
     # foreign keys
-    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(f"{settings.DB_SCHEMA}.runs.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(f"{settings.DB_SCHEMA}.projects.id", ondelete="CASCADE"), nullable=False)
 
     # relationships
-    run: Mapped[Runs] = relationship("Runs", back_populates="reports")
+    project: Mapped[Projects] = relationship("Projects", back_populates="reports")
