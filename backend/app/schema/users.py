@@ -38,7 +38,7 @@ class UserInfo(BaseModel):
     """ User identity projection """
     model_config = ConfigDict(from_attributes=True)
 
-    user_id: UUID
+    id: UUID
     email: EmailStr
     is_verified: bool
     created_at: datetime
