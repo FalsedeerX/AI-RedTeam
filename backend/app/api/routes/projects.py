@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from app.schema.projects import ProjectCreate, ProjectSummary, ProjectDetail
 from app.api.deps import get_current_user_id
-from app.db.broker import ProjectsBroker 
+from app.db.broker import ProjectsBroker
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
