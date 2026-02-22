@@ -1,4 +1,6 @@
 from uuid import UUID
+
+from sqlalchemy.sql.functions import user
 from app.db.models.users import Users
 from app.db.broker.base import BaseBroker
 

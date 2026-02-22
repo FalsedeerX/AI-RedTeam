@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.api.users import UsersRouter
+from app.api.routes.users import UsersRouter
 
 
 def initialize_server() -> FastAPI:
