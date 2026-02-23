@@ -1,13 +1,23 @@
-from app.core.config import settings
-from app.core.debug import connection_check
+import uvicorn
+from fastapi import FastAPI
+from app.api.routes import UsersRouter, ProjectsRouter, TargetsRouter
 
 
-def main():
-    print("Checking Connection for Database Setup......")
-    print("Owner Connection Status:", connection_check(settings.DB_OWNER_URL))
-    print("Runtime Connection Status:", connection_check(settings.DB_RUNTIME_URL))
-    print("Migrate Connection Status:", connection_check(settings.DB_MIGRATE_URL))
+def initialize_server() -> FastAPI:
+    app = FastAPI(title="Backend API", version="0.1.0")
+    register_routers(app)
+    return app
+
+
+def register_routers(app: FastAPI) -> None:
+    app.include_router(UsersRouter().router)
+    app.include_router(ProjectsRouter().router)
+    app.include_router(TargetsRouter().router)
+
+
+# create a server instance
+app = initialize_server()
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("backend:app", host="127.0.0.1", port=8000, reload=True)
