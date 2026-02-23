@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from .projects import Projects
     from .targets import Targets
     from .findings import Findings
-    from .reports import Reports
 
 
 class Runs(Base):
@@ -40,4 +39,3 @@ class Runs(Base):
     project: Mapped[Projects] = relationship("Projects", back_populates="runs")
     target: Mapped[Targets | None] = relationship("Targets", back_populates="runs")
     findings: Mapped[list[Findings]] = relationship("Findings", back_populates="run", cascade="all, delete-orphan")
-    reports: Mapped[list[Reports]] = relationship("Reports", back_populates="run", cascade="all, delete-orphan")

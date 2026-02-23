@@ -18,6 +18,12 @@ class BaseBroker(Generic[T]):
         with get_session() as session:
             return session.get(self.model, primary_key)
 
+    def get_one(self, filters: dict[str, Any]) -> Optional[T]:
+        """ Retrieve a single entry by sepcified filters """
+        with get_session() as session:
+            query = select(self.model).filter_by(**filters)
+            return session.scalars(query).one_or_none()
+
     def get_bulk(self, filters: dict[str, Any]) -> Sequence[T]:
         """ Query in bulk by custom filters in dictionary, return selected entries in sequence """
         with get_session() as session:
@@ -47,7 +53,7 @@ class BaseBroker(Generic[T]):
             session.refresh(entry)
             return entry
 
-    def apply_bulkj(self, filters: dict[str, Any], values: dict[str, Any]) -> int:
+    def apply_bulk(self, filters: dict[str, Any], values: dict[str, Any]) -> int:
         """ Update in bulk by custom filters in dictionary, return total updated rows count """
         if not values: return 0
         if not filters: raise ValueError("Refuse to update without filters")
