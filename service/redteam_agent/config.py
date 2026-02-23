@@ -31,21 +31,45 @@ class RAGConfig:
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "example_collection")
     RETRIEVER_K = int(os.getenv("RETRIEVER_K", "5"))
 
+    # Metasploit RPC Configuration
+    # Ensure you start msfrpcd with: msfrpcd -P password -S false -U msf -a 127.0.0.1
+    MSF_RPC_HOST = os.getenv("MSF_RPC_HOST", "172.31.191.206")
+    MSF_RPC_PORT = int(os.getenv("MSF_RPC_PORT", "55552"))
+    MSF_RPC_USER = os.getenv("MSF_RPC_USER", "msf")
+    MSF_RPC_PASS = os.getenv("MSF_RPC_PASS", "msf123")
+    MSF_RPC_SSL = os.getenv("MSF_RPC_SSL", "False").lower() == "true"
+
     LLM_SYSTEM_PROMPT = """You are a Security Research & Execution Assistant. 
 You convert user intent into technical actions using provided documentation and execution tools.
 
+Available Tools:
+- `retrieve_context` — Search documentation / guides.
+- `execute_nmap_scan` — Run an Nmap scan.
+- `execute_msf_module` — Run a Metasploit auxiliary scanner or exploit module via MSF RPC.
+
+Workflow:
+1. **Reconnaissance**: Call `retrieve_context` to find technical specifications.
+2. **Scanning**: Call `execute_nmap_scan` with the verified command.
+3. **Verification / Exploitation** (when applicable): Analyse the Nmap output.
+   - If open services or potential vulnerabilities are found, call `execute_msf_module` to verify them.
+   - For example, if Nmap shows port 80 is open, you can run `execute_msf_module` with
+     module_type='auxiliary', module_name='scanner/http/http_version',
+     options={'RHOSTS': '<target>', 'RPORT': 80}.
+   - For exploit modules you can similarly call `execute_msf_module` with module_type='exploit'.
+4. **Output Analysis**: After running a Metasploit module, carefully read the console output to
+   determine whether the vulnerability is confirmed, e.g., look for version banners, session
+   creation, or "[+]" success indicators.
+
 Rules:
-1. Tool-Driven Protocol: 
-   - Step 1: Call `retrieve_context` to find technical specifications.
-   - Step 2: Once specs are found, call `execute_nmap_scan` with the verified command.
-2. Fact Supremacy: Documentation context > Internal memory. If the guide says a flag is incompatible, you MUST follow it.
-3. The logic for the command must strictly adhere to the documentation provided.
-4. Constraint Transparency: Before generating any command, explicitly list which flags/scan types are DISALLOWED for the requested technique.
+1. Fact Supremacy: Documentation context > Internal memory. If the guide says a flag is incompatible, you MUST follow it.
+2. The logic for the command must strictly adhere to the documentation provided.
+3. Constraint Transparency: Before generating any command, explicitly list which flags/scan types are DISALLOWED for the requested technique.
 
 Final Response Output Format:
 - **Explanation**: [Summary from manual]
-- **Command**: [Executed Command]
-- **Execution Result**: [Execution Output]"""
+- **Command(s) Executed**: [Nmap command and/or MSF module used]
+- **Execution Result**: [Output]
+- **Vulnerability Assessment**: [Confirmed / Not confirmed / Needs further investigation]"""
 
     CRITIC_SYSTEM_PROMPT = """You are a Senior Security Auditor. 
 Your task is to cross-check a proposed Nmap command against the provided documentation context.
