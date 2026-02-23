@@ -209,3 +209,5 @@ service/redteam_agent/chromadb_data/
 service/agent_graph.png 
 service/chroma_db/
 service/redteam_agent/chroma_db/
+
+.cursor/
