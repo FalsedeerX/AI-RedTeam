@@ -1,43 +1,32 @@
 import React from 'react';
+import { apiPost } from '../lib/api';
+
 export default function EmailEntry({ onVerify }) {
   const [email, setEmail] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // fucntion handles api call
   const handleSubmit = async (e) => {
       e.preventDefault();
       if (!email.trim()) {
           setError('Please enter an email.');
           return;
       }
-      
+
       setIsLoading(true);
       setError('');
 
       try {
-          const response = await fetch('http://127.0.0.1:5000/verify', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ email: email }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-              
+          // TODO: Confirm POST /verify returns { success, username, email }
+          const data = await apiPost('/verify', { email });
+          if (data.success) {
               onVerify(data.username, data.email);
           } else {
-          
               setError(data.message || 'Verification failed.');
           }
-
       } catch (err) {
-      
           console.error('Fetch error:', err);
-          setError('Could not connect to the server. Is it running?');
+          setError(err.message || 'Could not connect to the server. Is it running?');
       } finally {
           setIsLoading(false);
       }

@@ -1,5 +1,10 @@
 import React from 'react';
-export default function Dashboard({ username, email, targets, scanType }) {
+import ReportView from './ReportView';
+import { apiGet, apiPost } from '../lib/api';
+
+// TODO: pass projectId to POST /start_scan body once the run-start
+// endpoint is wired to the new backend (Phase 2).
+export default function Dashboard({ username, email, targets, scanType, projectId }) {
   const [logs, setLogs] = React.useState([]);
   const [scanStatus, setScanStatus] = React.useState('IDLE');
   const [pendingAction, setPendingAction] = React.useState(null);
@@ -23,20 +28,19 @@ export default function Dashboard({ username, email, targets, scanType }) {
 
       const pollInterval = setInterval(async () => {
           try {
-              const response = await fetch('http://127.0.0.1:5000/poll_status');
-              const data = await response.json();
+              // TODO: Confirm GET /poll_status returns
+              //   { status, logs, pending_action, targets, scan_type, report_type }
+              const data = await apiGet('/poll_status');
 
               setLogs(data.logs || []);
               setScanStatus(data.status);
               setPendingAction(data.pending_action);
               setReportType(data.report_type || 'sql_injection');
 
-              // Open modal if approval is needed
               if (data.status === 'NEEDS_APPROVAL' && data.pending_action) {
                   setIsModalOpen(true);
               }
 
-              // Stop polling if completed or terminated
               if (data.status === 'COMPLETED' || data.status === 'TERMINATED') {
                   clearInterval(pollInterval);
               }
@@ -54,42 +58,28 @@ export default function Dashboard({ username, email, targets, scanType }) {
       setScanStarted(true);
 
       try {
-          const response = await fetch('http://127.0.0.1:5000/start_scan', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                  targets: targets,
-                  scan_type: scanType
-              }),
+          // TODO: Add project_id to body once backend run-start endpoint
+          //   accepts it: { targets, scan_type, project_id: projectId }
+          const data = await apiPost('/start_scan', {
+              targets,
+              scan_type: scanType,
           });
 
-          const data = await response.json();
-
-          if (!response.ok || !data.success) {
+          if (!data.success) {
               setError(data.message || 'Failed to start scan');
               setScanStarted(false);
           }
       } catch (err) {
           console.error('Start scan error:', err);
-          setError('Could not connect to backend. Is the server running?');
+          setError(err.message || 'Could not connect to backend. Is the server running?');
           setScanStarted(false);
       }
   };
 
   const handleApprove = async () => {
       try {
-          const response = await fetch('http://127.0.0.1:5000/approve_action', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
+          const data = await apiPost('/approve_action');
+          if (data.success) {
               setIsModalOpen(false);
               setPendingAction(null);
           }
@@ -101,17 +91,8 @@ export default function Dashboard({ username, email, targets, scanType }) {
 
   const handleDeny = async () => {
       try {
-          const response = await fetch('http://127.0.0.1:5000/deny_action', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-              // Close modal and let user watch terminal continue with pivot logs
+          const data = await apiPost('/deny_action');
+          if (data.success) {
               setIsModalOpen(false);
               setPendingAction(null);
           } else {
@@ -125,17 +106,8 @@ export default function Dashboard({ username, email, targets, scanType }) {
 
   const handleKillSwitch = async () => {
       try {
-          const response = await fetch('http://127.0.0.1:5000/kill_scan', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-              // Update status to TERMINATED
+          const data = await apiPost('/kill_scan');
+          if (data.success) {
               setScanStatus('TERMINATED');
               setIsModalOpen(false);
               setPendingAction(null);
@@ -151,17 +123,8 @@ export default function Dashboard({ username, email, targets, scanType }) {
 
   const handleResetScan = async () => {
       try {
-          const response = await fetch('http://127.0.0.1:5000/reset_scan', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-              // Reset all frontend state to initial values
+          const data = await apiPost('/reset_scan');
+          if (data.success) {
               setLogs([]);
               setScanStatus('IDLE');
               setPendingAction(null);
