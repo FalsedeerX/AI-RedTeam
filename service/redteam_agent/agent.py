@@ -4,7 +4,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import AnyMessage, SystemMessage, ToolMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
 from .config import config
-from .tools import retrieve_context, execute_nmap_scan
+from .tools import retrieve_context, execute_nmap_scan, execute_msf_module
 
 # Define state
 class MessagesState(TypedDict):
@@ -21,7 +21,7 @@ class RedTeamAgent:
         self.app = self._build_graph()
 
     def _init_tools(self):
-        self.tools = [retrieve_context, execute_nmap_scan]
+        self.tools = [retrieve_context, execute_nmap_scan, execute_msf_module]
         self.tools_by_name = {tool.name: tool for tool in self.tools}
 
     def _init_models(self):
