@@ -12,6 +12,11 @@ class TargetCreate(BaseModel):
     value: str
 
 
+class TargetScope(BaseModel):
+    """ Request for receiving a list of targets associated with a project """
+    project_id: UUID
+
+
 class TargetDetail(BaseModel):
     """ Response for asking for a target's detail information """
     model_config = ConfigDict(from_attributes=True)

@@ -13,7 +13,7 @@ class UsersRouter:
     def __init__(self):
         self.router = router
         self.broker = UsersBroker()
-        self.router.post("/register", response_model=UserInfo)(self.register)
+        self.router.post("/register", status_code=201, response_model=UserInfo)(self.register)
         self.router.post("/auth", response_model=UserIdentity)(self.authenticate)
         self.router.get("/me", response_model=UserInfo)(self.get_profile)
         self.router.patch("/profile", response_model=UserInfo)(self.update_profile)

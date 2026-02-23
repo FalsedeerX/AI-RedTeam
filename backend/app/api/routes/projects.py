@@ -12,12 +12,12 @@ class ProjectsRouter:
         self.router = router
         self.broker = ProjectsBroker()
         self.router.get("", response_model=list[ProjectSummary])(self.list_projects)
-        self.router.post("", response_model=ProjectSummary)(self.create_project)
+        self.router.post("", status_code=201, response_model=ProjectSummary)(self.create_project)
         self.router.delete("/{project_id}", status_code=204)(self.delete_project)
         self.router.get("/{project_id}", response_model=ProjectDetail)(self.get_project)
 
     def list_projects(self, user_id: UUID = Depends(get_current_user_id)):
-        """ Recevie a list of project the current user owns """
+        """ Recevie a list of projects the current user owns """
         return self.broker.list_by_owner(user_id)
 
     def create_project(self, payload: ProjectCreate, user_id: UUID = Depends(get_current_user_id)):
@@ -38,7 +38,8 @@ class ProjectsRouter:
 
         # check if the user actually owned the project
         if project_entry.owner_id != user_id: raise HTTPException(status_code=404, detail="Project not found")
-        self.broker.purge(project_id)
+        deleted = self.broker.purge(project_id)
+        if not deleted: raise HTTPException(status_code=404, detail="Project not found")
 
     def get_project(self, project_id: UUID, user_id: UUID = Depends(get_current_user_id)):
         """ Receive details for a speicifc project id """
