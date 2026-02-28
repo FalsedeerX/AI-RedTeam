@@ -1,13 +1,45 @@
+import re
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.sql.functions import user
-from app.schema.targets import TargetCreate, TargetDetail, TargetScope, TargetPatch
+from app.schema.targets import TargetCreate, TargetDetail, TargetPatch
+from app.domain.target import TargetType
 from app.api.deps import get_current_user_id
 from app.db.broker import TargetsBroker
 from app.db.models import Targets
 
 
-router = APIRouter(prefix="/targets", tags=["targets"])
+# Nested under projects so URLs match the frontend:
+#   GET  /projects/{project_id}/targets
+#   POST /projects/{project_id}/targets
+#   GET  /projects/{project_id}/targets/{target_id}
+#   DELETE /projects/{project_id}/targets/{target_id}
+#   PATCH  /projects/{project_id}/targets/{target_id}
+router = APIRouter(prefix="/projects/{project_id}/targets", tags=["targets"])
+
+_CIDR_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$")
+_IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_URL_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def infer_target_type(value: str) -> TargetType:
+    """Infer TargetType from the value string so the frontend doesn't need to send it."""
+    v = value.strip()
+    if _URL_RE.match(v):
+        return TargetType.URL
+    if _CIDR_RE.match(v):
+        return TargetType.CIDR
+    if _IP_RE.match(v):
+        return TargetType.IP
+    return TargetType.DOMAIN
+
+
+class TargetCreateRequest(TargetCreate):
+    """
+    Frontend-facing create schema — project_id and target_type are optional
+    because they come from the URL path and auto-inference respectively.
+    """
+    project_id: UUID | None = None
+    target_type: TargetType | None = None
 
 
 class TargetsRouter:
@@ -20,60 +52,63 @@ class TargetsRouter:
         self.router.delete("/{target_id}", status_code=204)(self.delete_target)
         self.router.patch("/{target_id}", response_model=TargetDetail)(self.update_target)
 
-    def list_targets(self, payload: TargetScope, user_id: UUID = Depends(get_current_user_id)):
+    def list_targets(self, project_id: UUID, user_id: UUID = Depends(get_current_user_id)):
         """
-        Receive a list of targets the specified project owns,
-        Authentication of project ownership disabled for simplicity, will add dependency for checking in future.
+        List all targets belonging to a project.
+        Ownership check on the project is deferred to a future middleware.
         """
-        return self.broker.list_by_project(payload.project_id)
+        return self.broker.list_by_project(project_id)
 
-    def create_target(self, payload: TargetCreate, user_id: UUID = Depends(get_current_user_id)):
+    def create_target(self, project_id: UUID, payload: TargetCreateRequest, user_id: UUID = Depends(get_current_user_id)):
         """
-        Create a new target for the specified project 
-        Authentication of project ownership disabled for simplicity, will add dependency for checking in future.
+        Create a new target for the project in the URL path.
+        target_type is inferred from the value if not supplied by the caller.
         """
-        target_entry = self.broker.create(payload.model_dump())
-        return target_entry
+        resolved_type = payload.target_type or infer_target_type(payload.value)
+        data = {
+            "project_id": project_id,
+            "value": payload.value,
+            "label": payload.label,
+            "target_type": resolved_type,
+        }
+        return self.broker.create(data)
 
-    def get_target(self, target_id: UUID, user_id: UUID = Depends(get_current_user_id)):
-        """ Receive details for a specifed target id """
-        # verify ownership
+    def get_target(self, project_id: UUID, target_id: UUID, user_id: UUID = Depends(get_current_user_id)):
+        """Retrieve details for a specific target."""
         if self.broker.get_owner_id(target_id) != user_id:
             raise HTTPException(status_code=404, detail="Target not found")
 
-        # retreive entry
         target_entry = self.broker.get(target_id)
-        if not target_entry: raise HTTPException(status_code=404, detail="Target not found")
+        if not target_entry:
+            raise HTTPException(status_code=404, detail="Target not found")
         return target_entry
 
-    def delete_target(self, target_id: UUID, user_id: UUID = Depends(get_current_user_id)):
-        """ Remove specified target from project """
-        # verify ownership
+    def delete_target(self, project_id: UUID, target_id: UUID, user_id: UUID = Depends(get_current_user_id)):
+        """Remove a target from the project."""
         if self.broker.get_owner_id(target_id) != user_id:
             raise HTTPException(status_code=404, detail="Target not found")
 
-        # perform deletion
         deleted = self.broker.purge(target_id)
-        if not deleted: raise HTTPException(status_code=404, detail="Target not found")
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Target not found")
 
-    def update_target(self, target_id: UUID, payload: TargetPatch, user_id: UUID = Depends(get_current_user_id)):
-        """ Update information for a target """
-        # verify ownership
+    def update_target(self, project_id: UUID, target_id: UUID, payload: TargetPatch, user_id: UUID = Depends(get_current_user_id)):
+        """Update one or more fields on a target."""
         if self.broker.get_owner_id(target_id) != user_id:
             raise HTTPException(status_code=404, detail="Target not found")
 
-        # verify the update data
         data = payload.model_dump(exclude_unset=True)
-        if not data: raise HTTPException(status_code=400, detail="Incomplete patch payload")
+        if not data:
+            raise HTTPException(status_code=400, detail="Incomplete patch payload")
 
-        # preventing the value and project_type be none
         for key, value in data.items():
             if value is None and key != "label":
                 raise HTTPException(status_code=400, detail=f"{key} can't be null")
 
-        # path target
         patched_entry = self.broker.apply(target_id, data)
-        if not patched_entry: raise HTTPException(status_code=404, detail="Target not found")
+        if not patched_entry:
+            raise HTTPException(status_code=404, detail="Target not found")
+        return patched_entry
 
 
 if __name__ == "__main__":

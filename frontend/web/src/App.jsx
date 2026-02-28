@@ -3,6 +3,7 @@ import EmailEntry from './pages/EmailEntry'
 import TermsModal from './pages/TermsModal'
 import ProjectScopeManager from './pages/ProjectScopeManager'
 import Dashboard from './pages/Dashboard'
+import { setAuthUserId } from './lib/api'
 import './App.css'
 
 // Main App Component
@@ -13,11 +14,12 @@ function App() {
   const [email, setEmail] = useState('')
   const [scanType, setScanType] = useState('')
   const [targets, setTargets] = useState([])
-  // projectId is forwarded to Dashboard so it can be passed to the run-start
-  // endpoint once the backend scan routes are wired (Phase 2).
   const [projectId, setProjectId] = useState(null)
 
-  const handleVerify = (name, userEmail) => {
+  // onVerify now receives (username, email, userId) from EmailEntry.
+  // We store userId in the api module so every subsequent request includes X-User-Id.
+  const handleVerify = (name, userEmail, userId) => {
+    setAuthUserId(userId)
     setUsername(name)
     setEmail(userEmail)
     setCurrentPage('terms-agreement')
