@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from app.schema.users import UserCreate, UserAuth, UserInfo, UserIdentity
 from app.api.deps import get_current_user_id
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.db.broker import UsersBroker
 
 
@@ -26,8 +26,6 @@ class UsersRouter:
             "email": payload.email,
             "hashed_password": hash_password(payload.password.get_secret_value())
         }
-
-        # register in database
         user_entry = self.broker.create(user_info)
         return user_entry
 
@@ -37,11 +35,10 @@ class UsersRouter:
         Need to add real session token based solution to replace this in the future.
         """
         user_creds = self.broker.get_credential_by_email(payload.email)
-        if not user_creds: raise HTTPException(status_code=401, detail="Account doens't exists")
+        if not user_creds: raise HTTPException(status_code=401, detail="Account doesn't exist")
 
-        # if account exists check if hashed password match
         user_id, user_passwd = user_creds
-        if user_passwd != hash_password(payload.password.get_secret_value()):
+        if not verify_password(payload.password.get_secret_value(), user_passwd): #change is made so that we dont try and compare two hashes of the same password
             raise HTTPException(status_code=401, detail="Incorrect login credentials")
         return UserIdentity(user_id=user_id)
 
