@@ -56,8 +56,13 @@ def main():
         print("-" * 50)
         
         # Invoke the graph with streaming to show progress
-        initial_state = {"messages": [HumanMessage(content=query)], "llm_calls": 0}
-        config_run = {"recursion_limit": 20} # Safety limit
+        initial_state = {
+            "messages": [HumanMessage(content=query)],
+            "llm_calls": 0,
+            "current_phase": "recon",
+            "plan": "",
+        }
+        config_run = {"recursion_limit": 30} # Safety limit
         
         for event in graph.stream(initial_state, config=config_run):
             for node_name, values in event.items():
