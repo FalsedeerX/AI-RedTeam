@@ -21,7 +21,7 @@ class RedTeamAgent:
     Encapsulates the Red Team Agent graph logic, models, and tools.
 
     Graph flow:
-        START -> planner -> tactician -> critic_node -> tool_node -> planner
+        START -> planner -> tactician -> critic_node -> tool_node -> analyst_node -> planner
     The Planner decides *what* to do (phase + directive).
     The Tactician decides *how* to do it (tool calls).
     The Critic validates proposed commands before execution.
@@ -187,6 +187,8 @@ class RedTeamAgent:
             )
             return {"messages": [HumanMessage(content=feedback)]}
 
+    def analyst_node(self, state: MessagesState):
+        return state
     # --- Conditional Edges ---
 
     def route_after_planner(self, state: MessagesState) -> Literal["tactician", "__end__"]:
@@ -229,7 +231,7 @@ class RedTeamAgent:
     # --- Graph Construction ---
 
     def _build_graph(self):
-        """Build the StateGraph: START -> planner -> tactician -> critic -> tool_node -> planner."""
+        """Build the StateGraph: START -> planner -> tactician -> critic -> tool_node -> analyst -> planner."""
         agent_builder = StateGraph(MessagesState)
 
         # Add nodes
@@ -237,6 +239,7 @@ class RedTeamAgent:
         agent_builder.add_node("tactician", self.tactician_node)
         agent_builder.add_node("tool_node", self.tool_node)
         agent_builder.add_node("critic_node", self.critic_node)
+        agent_builder.add_node("analyst_node", self.analyst_node)
 
         # Add edges
         
@@ -260,8 +263,9 @@ class RedTeamAgent:
             self.route_after_critic,
             {"tactician": "tactician", "tool_node": "tool_node", END: END},
         )
-        # tool_node -> planner
-        agent_builder.add_edge("tool_node", "planner")
+        # tool_node -> analyst_node -> planner
+        agent_builder.add_edge("tool_node", "analyst_node")
+        agent_builder.add_edge("analyst_node", "planner")
 
         return agent_builder.compile()
 
