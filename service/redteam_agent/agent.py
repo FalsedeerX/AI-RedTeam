@@ -15,6 +15,7 @@ class MessagesState(TypedDict):
     llm_calls: int
     current_phase: str
     plan: str
+    findings: Annotated[list[dict], operator.add]
 
 class RedTeamAgent:
     """
@@ -25,6 +26,7 @@ class RedTeamAgent:
     The Planner decides *what* to do (phase + directive).
     The Tactician decides *how* to do it (tool calls).
     The Critic validates proposed commands before execution.
+    The Analyst interprets tool results to severity/risk levels.
     """
     def __init__(self):
         self._init_tools()
@@ -50,6 +52,12 @@ class RedTeamAgent:
             base_url=config.LLM_BASE_URL
         )
         self.critic_model = ChatOllama(
+            model=config.LLM_MODEL_NAME,
+            temperature=0,
+            num_ctx=8192,
+            base_url=config.LLM_BASE_URL
+        )
+        self.analyst_model = ChatOllama(
             model=config.LLM_MODEL_NAME,
             temperature=0,
             num_ctx=8192,
@@ -188,7 +196,46 @@ class RedTeamAgent:
             return {"messages": [HumanMessage(content=feedback)]}
 
     def analyst_node(self, state: MessagesState):
-        return state
+        """Analyst: interprets tool results and maps findings to severity/risk levels."""
+        def _parse_llm_findings(response: str) -> list[dict]:
+            """Parse the LLM response into structured findings."""
+            findings = []
+            for line in response.split("\n"):
+                if line.startswith("FINDING:"):
+                    # Extract severity and description
+                    parts = line[len("FINDING:"):].strip().split(" ", 1)
+                    if len(parts) == 2:
+                        severity, description = parts
+                        findings.append({
+                            "severity": severity.strip("[]"),
+                            "description": description.strip(),
+                        })
+            return findings
+    
+        messages = state["messages"]
+
+        tool_messages: list = []
+        for m in reversed(messages):
+            if isinstance(m, ToolMessage):
+                tool_messages.append(m)
+            elif tool_messages:
+                break
+
+        if not tool_messages:
+            return {"messages": [], "findings": []}
+        
+        tool_summary = "\n\n".join(f"[{tm.name}]:\n{tm.content}" for tm in tool_messages)
+
+        analyst_response = self.analyst_model.invoke([
+            SystemMessage(content=config.ANALYST_SYSTEM_PROMPT),
+            HumanMessage(content=f"TOOL OUTPUTS:\n{tool_summary}\n\n")
+        ])
+
+        findings = _parse_llm_findings(analyst_response.content)
+        analyst_message = HumanMessage(content=f"Tool Call Analysis:\n{analyst_response.content}")
+
+        return {"messages": [analyst_message], "findings": findings}
+
     # --- Conditional Edges ---
 
     def route_after_planner(self, state: MessagesState) -> Literal["tactician", "__end__"]:

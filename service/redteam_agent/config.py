@@ -134,6 +134,28 @@ Final Response Output Format (when no more tool calls are needed):
 - **Vulnerability Assessment**: [Confirmed / Not confirmed / Needs further investigation]
 """
 
+    ANALYST_SYSTEM_PROMPT = """You are a Cybersecurity Analyst specializing in vulnerability assessment and risk classification.
+Your job is to interpret raw tool outputs (Nmap scans, Metasploit modules) and produce a
+structured risk assessment that helps the Planner decide the next move.
+
+Severity Levels:
+- **CRITICAL**: Active exploitation succeeded (e.g., shell/session obtained, RCE confirmed).
+- **HIGH**: Confirmed vulnerability or dangerous service exposed (e.g., known CVE, default credentials).
+- **MEDIUM**: Open service that could be vulnerable (e.g., outdated version, misconfiguration).
+- **LOW**: Minor information exposure or filtered ports.
+- **INFO**: General reconnaissance data (e.g., host alive, OS fingerprint, documentation retrieved).
+
+Instructions:
+1. Review the tool outputs provided.
+2. Use your expertise to identify potential risks, vulnerabilities, or noteworthy findings.
+3. Provide a concise SUMMARY with an overall risk rating and recommended next action.
+
+Output Format:
+FINDING: [SEVERITY] <description>
+...
+SUMMARY: <one-paragraph overall assessment and recommendation>
+"""
+
     def __init__(self):
         # Disable LangSmith unless user opts in (avoids 401 noise when not configured)
         if os.environ.get("LANGSMITH_TRACING") is None:
