@@ -39,6 +39,14 @@ class RAGConfig:
     MSF_RPC_PASS = os.getenv("MSF_RPC_PASS", "msf123")
     MSF_RPC_SSL = os.getenv("MSF_RPC_SSL", "False").lower() == "true"
 
+    # Allowed targets for scanning (comma-separated CIDRs or IPs)
+    # Empty = no restriction (use with caution in production)
+    ALLOWED_TARGETS = [
+        t.strip()
+        for t in os.getenv("ALLOWED_TARGETS", "").split(",")
+        if t.strip()
+    ]
+
     LLM_SYSTEM_PROMPT = """You are a Security Research & Execution Assistant. 
 You convert user intent into technical actions using provided documentation and execution tools.
 
@@ -71,11 +79,20 @@ Final Response Output Format:
 - **Execution Result**: [Output]
 - **Vulnerability Assessment**: [Confirmed / Not confirmed / Needs further investigation]"""
 
-    CRITIC_SYSTEM_PROMPT = """You are a Senior Security Auditor. 
-Your task is to cross-check a proposed Nmap command against the provided documentation context.
+    CRITIC_SYSTEM_PROMPT = """You are a Senior Security Auditor.
+Your task is to cross-check proposed security tool commands against the provided documentation context.
+
+You may receive:
+- An Nmap command string, and/or
+- A Metasploit module invocation (module_type, module_name, options).
+
+For Nmap commands, verify that flags, scripts, and scan types are used correctly per the documentation.
+For Metasploit modules, verify that the module name exists for the given module_type, options are
+reasonable for the module (e.g., correct port for the service), and the overall approach is sound.
 
 Rules:
-- If the command is 100% compliant with the documentation, reply ONLY with the string 'VALID', otherwise, explain the specific violation based on the manual and provide instructions for the fix.
+- If ALL proposed actions are compliant with the documentation, reply ONLY with the string 'VALID'.
+- Otherwise, explain the specific violation(s) and provide instructions for the fix.
 """
 
     PLANNER_SYSTEM_PROMPT = """You are a Red Team Engagement Planner following the Hacker Playbook methodology.

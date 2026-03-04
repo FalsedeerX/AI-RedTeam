@@ -35,6 +35,7 @@ def main():
     print(f"  LLM      : {config.LLM_MODEL_NAME}")
     print(f"  LLM URL  : {config.LLM_BASE_URL}")
     print(f"  ChromaDB : {config.CHROMA_PERSIST_DIRECTORY}")
+    print(f"  LangSmith Trace : {'Enabled' if os.getenv('LANGSMITH_TRACING') else 'Disabled'}")
 
     # Step 1: Document Ingestion
     print(BOLD(f"\n[Step 1] Document Ingestion"))
