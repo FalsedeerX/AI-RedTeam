@@ -8,6 +8,7 @@ import os
 from langchain_core.messages import HumanMessage
 from redteam_agent import ingest_documents, get_agent, config
 from redteam_agent.vector_store import clear_vector_store
+from langgraph.types import Command
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -91,87 +92,109 @@ def main():
         "plan": "",
         "findings": [],
     }
-    config_run = {"recursion_limit": 30}
+    config_run = {"configurable": {"thread_id": "test-1"}, "recursion_limit": 30}
 
     try:
         phase_history = []
         step = 0
+        current_input = initial_state
 
-        for event in graph.stream(initial_state, config=config_run):
-            for node_name, values in event.items():
-                step += 1
+        while True:
+            interrupted = False
+            for event in graph.stream(current_input, config=config_run):
+                # ── Human-in-the-loop: interrupt detected ──
+                if "__interrupt__" in event:
+                    payload = event["__interrupt__"][0].value
+                    print(f"\n{'═'*60}")
+                    print(RED(BOLD("  ⚠  HIGH-RISK ACTION — OPERATOR APPROVAL REQUIRED")))
+                    print(f"{'═'*60}")
+                    print(f"  Risk level : {payload.get('risk_level', 'HIGH')}")
+                    print(f"  Reason     : {payload.get('reason', '')}")
+                    print(f"  Actions    :")
+                    print(f"{payload.get('proposed_actions', '')}")
+                    print(f"{'─'*60}")
+                    raw = input("  Approve? (yes / no): ").strip().lower()
+                    current_input = Command(resume=raw)
+                    interrupted = True
+                    break
 
-                # ── Header ──
-                if node_name == "planner":
-                    label = MAGENTA(f"★ PLANNER (step {step})")
-                elif node_name == "tactician":
-                    label = CYAN(f"⚙ TACTICIAN (step {step})")
-                elif node_name == "critic_node":
-                    label = YELLOW(f"✎ CRITIC (step {step})")
-                elif node_name == "tool_node":
-                    label = GREEN(f"▶ TOOL (step {step})")                
-                elif node_name == "analyst_node":
-                    label = BLUE(f"📊 ANALYST (step {step})")                
-                else:
-                    label = f"  {node_name} (step {step})"
+                for node_name, values in event.items():
+                    step += 1
 
-                print(f"\n{'─'*60}")
-                print(f"  {label}")
-                print(f"{'─'*60}")
+                    # ── Header ──
+                    if node_name == "planner":
+                        label = MAGENTA(f"★ PLANNER (step {step})")
+                    elif node_name == "tactician":
+                        label = CYAN(f"⚙ TACTICIAN (step {step})")
+                    elif node_name == "critic_node":
+                        label = YELLOW(f"✎ CRITIC (step {step})")
+                    elif node_name == "tool_node":
+                        label = GREEN(f"▶ TOOL (step {step})")
+                    elif node_name == "analyst_node":
+                        label = BLUE(f"📊 ANALYST (step {step})")
+                    else:
+                        label = f"  {node_name} (step {step})"
 
-                # ── Phase / Plan ──
-                if "current_phase" in values:
-                    phase = values["current_phase"]
-                    phase_history.append(phase)
-                    print(f"  Phase : {BOLD(phase.upper())}")
+                    print(f"\n{'─'*60}")
+                    print(f"  {label}")
+                    print(f"{'─'*60}")
 
-                if "plan" in values and values["plan"]:
-                    plan_text = values["plan"]
-                    if len(plan_text) > 300:
-                        plan_text = plan_text[:300] + " ..."
-                    print(f"  Plan  : {plan_text}")
+                    # ── Phase / Plan ──
+                    if "current_phase" in values:
+                        phase = values["current_phase"]
+                        phase_history.append(phase)
+                        print(f"  Phase : {BOLD(phase.upper())}")
 
-                if "findings" in values and values["findings"]:
-                    print(f"  Findings ({len(values['findings'])}):")
-                    for f in values["findings"]:
-                        sev = f['severity']
-                        color = RED if sev == 'CRITICAL' else YELLOW if sev == 'HIGH' else CYAN
-                        print(f"    {color(f'[{sev}]')} {f['description']}")
+                    if "plan" in values and values["plan"]:
+                        plan_text = values["plan"]
+                        if len(plan_text) > 300:
+                            plan_text = plan_text[:300] + " ..."
+                        print(f"  Plan  : {plan_text}")
 
-                # ── Messages ──
-                if "messages" in values:
-                    for m in values["messages"]:
-                        msg_type = m.type
-                        content = m.content
+                    if "findings" in values and values["findings"]:
+                        print(f"  Findings ({len(values['findings'])}):")
+                        for f in values["findings"]:
+                            sev = f['severity']
+                            color = RED if sev == 'CRITICAL' else YELLOW if sev == 'HIGH' else CYAN
+                            print(f"    {color(f'[{sev}]')} {f['description']}")
 
-                        if msg_type == "ai":
-                            print(f"\n  {CYAN('[Tactician AI]')}")
-                            print(f"  {content}")
-                            if hasattr(m, "tool_calls") and m.tool_calls:
-                                for tc in m.tool_calls:
-                                    print(f"    → Tool Call : {BOLD(tc['name'])}")
-                                    print(f"      Args     : {tc['args']}")
+                    # ── Messages ──
+                    if "messages" in values:
+                        for m in values["messages"]:
+                            msg_type = m.type
+                            content = m.content
 
-                        elif msg_type == "tool":
-                            print(f"\n  {GREEN(f'[Tool Output — {m.name}]')}")
-                            print(f"  {content}")
-                            # if len(content) > 500:
-                            #     print(f"  {content[:500]}\n  ... [truncated, {len(content)} chars total]")
-                            # else:
-                            #     print(f"  {content}")
-
-                        elif msg_type == "human":
-                            if "[PLANNER" in content:
-                                print(f"\n  {MAGENTA('[Planner Directive]')}")
+                            if msg_type == "ai":
+                                print(f"\n  {CYAN('[Tactician AI]')}")
                                 print(f"  {content}")
-                            elif "CRITICISM" in content:
-                                print(f"\n  {RED('[Critic Rejection]')}")
+                                if hasattr(m, "tool_calls") and m.tool_calls:
+                                    for tc in m.tool_calls:
+                                        print(f"    → Tool Call : {BOLD(tc['name'])}")
+                                        print(f"      Args     : {tc['args']}")
+
+                            elif msg_type == "tool":
+                                print(f"\n  {GREEN(f'[Tool Output — {m.name}]')}")
                                 print(f"  {content}")
+                                # if len(content) > 500:
+                                #     print(f"  {content[:500]}\n  ... [truncated, {len(content)} chars total]")
+                                # else:
+                                #     print(f"  {content}")
+
+                            elif msg_type == "human":
+                                if "[PLANNER" in content:
+                                    print(f"\n  {MAGENTA('[Planner Directive]')}")
+                                    print(f"  {content}")
+                                elif "CRITICISM" in content:
+                                    print(f"\n  {RED('[Critic Rejection]')}")
+                                    print(f"  {content}")
+                                else:
+                                    print(f"\n  [Human]: {content}")
+
                             else:
-                                print(f"\n  [Human]: {content}")
+                                print(f"\n  [{msg_type}]: {content}")
 
-                        else:
-                            print(f"\n  [{msg_type}]: {content}")
+            if not interrupted:
+                break
 
         # ── Summary ──
         print("\n" + "═" * 60)

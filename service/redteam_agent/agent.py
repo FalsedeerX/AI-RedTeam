@@ -4,6 +4,7 @@ from typing import Literal, TypedDict, Annotated, List, Dict
 from langchain_ollama import ChatOllama
 from langchain_core.messages import AnyMessage, SystemMessage, ToolMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import InMemorySaver
 from .config import config
 from .critic import CriticPipeline
 from .tools import retrieve_context, execute_nmap_scan, execute_msf_module
@@ -280,7 +281,7 @@ class RedTeamAgent:
         agent_builder.add_edge("tool_node", "analyst_node")
         agent_builder.add_edge("analyst_node", "planner")
 
-        return agent_builder.compile()
+        return agent_builder.compile(checkpointer=InMemorySaver())
 
 def get_agent():
     """
