@@ -18,12 +18,15 @@ stays the same.
 """
 
 import asyncio
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from app.db.broker import RunsBroker
+from app.db.broker import RunsBroker, FindingsBroker, ReportsBroker
+from app.domain.findings import FindingType, FindingSeverity
+from app.domain.reports import ReportFormat
 from app.domain.runs import RunStatus
 
 
@@ -40,6 +43,8 @@ class ScanState:
     hitl_event: asyncio.Event = field(default_factory=asyncio.Event)
     hitl_approved: Optional[bool] = None
     killed: bool = False
+    findings: list[dict] = field(default_factory=list)
+    report_id: Optional[str] = None
 
 
 _scan_state: dict[str, ScanState] = {}
@@ -96,6 +101,45 @@ def _sync_db_status(run_id: str, status: RunStatus) -> None:
         pass   # DB may be unavailable in dev; don't crash the scan loop
 
 
+def _persist_results(run_id: str, state: ScanState) -> None:
+    """
+    Write findings and a report to the DB after a scan completes (best-effort).
+
+    Reads project_id from the existing Run row, bulk-inserts findings, then
+    creates a single Report row whose JSON content is the findings list.
+    Stores the new report's UUID back into state.report_id so the status
+    endpoint can surface it to the frontend.
+    """
+    try:
+        run = RunsBroker().get(UUID(run_id))
+        if run is None:
+            return
+
+        findings_broker = FindingsBroker()
+        for finding in state.findings:
+            findings_broker.create({**finding, "run_id": UUID(run_id)})
+
+        by_severity: dict[str, int] = {}
+        for f in state.findings:
+            sev = f["severity"]
+            by_severity[sev] = by_severity.get(sev, 0) + 1
+
+        summary_parts = [f"{count} {sev}" for sev, count in sorted(by_severity.items())]
+        summary = f"Found {len(state.findings)} finding(s): {', '.join(summary_parts)}."
+
+        report = ReportsBroker().create({
+            "title": f"Security Assessment — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+            "summary": summary,
+            "content": json.dumps(state.findings),
+            "report_format": ReportFormat.JSON,
+            "project_id": run.project_id,
+        })
+
+        state.report_id = str(report.id)
+    except Exception:
+        pass   # Never crash the scan state machine on a persistence error
+
+
 # ---------------------------------------------------------------------------
 # AI Drop-in Point
 # ---------------------------------------------------------------------------
@@ -109,8 +153,8 @@ async def run_agent(run_id: str, targets: list[str], scan_type: str) -> None:
 
     TO INTEGRATE THE REAL AI AGENT:
       1. Remove (or keep as fallback) the simulated blocks below.
-      2. Instantiate your LangChain/LangGraph agent here.
-      3. Stream its log output into `_log(state, message)`.
+      2. Instantiate the LangGraph/LangChain Agent here
+      3. Log the output to _log(state,message)
       4. When the agent requests human approval, call the HITL block:
              state.status = "NEEDS_APPROVAL"
              state.pending_action = "<agent's proposed action>"
@@ -193,8 +237,50 @@ async def run_agent(run_id: str, targets: list[str], scan_type: str) -> None:
 
         _log(state, "[SUCCESS] CVE analysis complete — 2 medium-severity findings logged")
         await asyncio.sleep(1)
+
+        # -- Structured findings (replace this block when real agent is wired in) --
+        state.findings = [
+            {
+                "finding_type": FindingType.MISCONFIGURATION,
+                "severity": FindingSeverity.MEDIUM,
+                "title": "Missing HTTP Security Headers",
+                "content": (
+                    "The server response is missing several recommended security headers: "
+                    "Content-Security-Policy, X-Frame-Options, and Strict-Transport-Security. "
+                    "Attackers can exploit this to conduct clickjacking or content injection attacks."
+                ),
+                "evidence": "HTTP/1.1 200 OK — no Content-Security-Policy, X-Frame-Options, or HSTS header present.",
+                "confidence": 90,
+            },
+            {
+                "finding_type": FindingType.VULNERABILITY,
+                "severity": FindingSeverity.HIGH,
+                "title": "Outdated TLS Configuration Detected",
+                "content": (
+                    "The server accepts TLS 1.0 and TLS 1.1 connections, which are deprecated "
+                    "and contain known cryptographic weaknesses (POODLE, BEAST). "
+                    "Upgrade to TLS 1.2+ and disable legacy cipher suites."
+                ),
+                "evidence": f"nmap --script ssl-enum-ciphers output: TLSv1.0 supported on {targets[0]}:443.",
+                "confidence": 85,
+            },
+            {
+                "finding_type": FindingType.INFORMATION,
+                "severity": FindingSeverity.LOW,
+                "title": "Server Version Disclosure",
+                "content": (
+                    "The Server response header exposes the web server name and version. "
+                    "This information helps attackers identify known CVEs for the specific version. "
+                    "Configure the server to suppress or genericize this header."
+                ),
+                "evidence": "Server: Apache/2.4.51 (Ubuntu) — version exposed in HTTP response header.",
+                "confidence": 95,
+            },
+        ]
+
         _log(state, "[INFO] Generating security assessment report...")
         await asyncio.sleep(1.5)
+        _persist_results(run_id, state)
         _log(state, "[SUCCESS] Scan complete. Report is ready.")
 
         state.status = "COMPLETED"

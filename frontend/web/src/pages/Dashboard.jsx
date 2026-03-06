@@ -10,9 +10,10 @@ export default function Dashboard({ username, email, targets, scanType, projectI
   const [scanStarted, setScanStarted] = React.useState(false);
   const [error, setError] = React.useState('');
   const [viewingReport, setViewingReport] = React.useState(false);
-  const [reportType, setReportType] = React.useState('general');
   // runId is returned by POST /scans/start and used for all subsequent calls.
   const [runId, setRunId] = React.useState(null);
+  // reportId is populated from the status response once the scan completes.
+  const [reportId, setReportId] = React.useState(null);
   const terminalRef = React.useRef(null);
 
   // Auto-scroll terminal to bottom when new logs arrive
@@ -34,7 +35,7 @@ export default function Dashboard({ username, email, targets, scanType, projectI
               setLogs(data.logs || []);
               setScanStatus(data.status);
               setPendingAction(data.pending_action);
-              setReportType(data.report_type || 'general');
+              if (data.report_id) setReportId(data.report_id);
 
               if (data.status === 'NEEDS_APPROVAL' && data.pending_action) {
                   setIsModalOpen(true);
@@ -124,6 +125,7 @@ export default function Dashboard({ username, email, targets, scanType, projectI
       setIsModalOpen(false);
       setScanStarted(false);
       setRunId(null);
+      setReportId(null);
       setError('');
       setViewingReport(false);
   };
@@ -135,19 +137,13 @@ export default function Dashboard({ username, email, targets, scanType, projectI
       return 'text-green-400';
   };
 
-  const handleDownloadPDF = () => {
-      alert('Downloading comprehensive security report...\n\nReport includes:\n- Executive summary\n- Detailed vulnerability analysis\n- Remediation recommendations\n- CVSS scores and risk assessments');
-  };
-
-  // THIS MUST BE BEFORE THE MAIN RETURN
-  // If user is viewing report, show ReportView instead of terminal
+  // If user is viewing report, show ReportView instead of terminal.
   if (viewingReport) {
       return (
-          <ReportView 
+          <ReportView
               targets={targets}
-              logs={logs}
-              reportType={reportType}
-              onDownloadPDF={handleDownloadPDF}
+              reportId={reportId}
+              runId={runId}
               onStartNewScan={handleResetScan}
           />
       );
