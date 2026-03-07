@@ -10,6 +10,13 @@ from redteam_agent import ingest_documents, get_agent, config
 from redteam_agent.vector_store import clear_vector_store
 from langgraph.types import Command
 
+# Ensure stdout/stderr use UTF-8 on all platforms (Windows cp1252, Linux C locale, etc.)
+# This prevents UnicodeEncodeError when printing box-drawing chars, emoji, and symbols.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # ANSI colours for readability (disable with NO_COLOR=1)
@@ -91,30 +98,35 @@ def main():
         "current_phase": "recon",
         "plan": "",
         "findings": [],
+        "phase_history": [],
     }
-    config_run = {"configurable": {"thread_id": "test-1"}, "recursion_limit": 30}
+    config_run = {"configurable": {"thread_id": "test-1"}, "recursion_limit": 100}
 
     try:
         phase_history = []
         step = 0
         current_input = initial_state
-
-        while True:
+        interrupted = True
+        while interrupted:
             interrupted = False
             for event in graph.stream(current_input, config=config_run):
                 # ── Human-in-the-loop: interrupt detected ──
                 if "__interrupt__" in event:
                     payload = event["__interrupt__"][0].value
-                    print(f"\n{'═'*60}")
-                    print(RED(BOLD("  ⚠  HIGH-RISK ACTION — OPERATOR APPROVAL REQUIRED")))
-                    print(f"{'═'*60}")
-                    print(f"  Risk level : {payload.get('risk_level', 'HIGH')}")
-                    print(f"  Reason     : {payload.get('reason', '')}")
-                    print(f"  Actions    :")
-                    print(f"{payload.get('proposed_actions', '')}")
-                    print(f"{'─'*60}")
-                    raw = input("  Approve? (yes / no): ").strip().lower()
-                    current_input = Command(resume=raw)
+                    actions = payload.get('proposed_actions', [])
+                    actions_str = "\n".join(
+                        f"    [{tc['name']}] {reason}" for tc, reason in actions
+                    ) if actions else "    (none)"
+                    print((
+                        f"\n{'═'*60}\n"
+                        f"{RED(BOLD('  ⚠  AGENT REQUESTING OPERATOR APPROVAL'))}\n"
+                        f"{'═'*60}\n"
+                        f"  Risk level : {payload.get('risk_level', 'HIGH')}\n"
+                        f"  Actions    :\n{actions_str}\n"
+                        f"{'─'*60}\n"
+                    ))
+                    response = input("  Approve? (yes / no): ").strip().lower()
+                    current_input = Command(resume=response in ("yes", "y", "approve"))
                     interrupted = True
                     break
 
@@ -128,6 +140,8 @@ def main():
                         label = CYAN(f"⚙ TACTICIAN (step {step})")
                     elif node_name == "critic_node":
                         label = YELLOW(f"✎ CRITIC (step {step})")
+                    elif node_name == "risk_gate_node":
+                        label = RED(f"🛡 RISK GATE (step {step})")
                     elif node_name == "tool_node":
                         label = GREEN(f"▶ TOOL (step {step})")
                     elif node_name == "analyst_node":
@@ -192,9 +206,6 @@ def main():
 
                             else:
                                 print(f"\n  [{msg_type}]: {content}")
-
-            if not interrupted:
-                break
 
         # ── Summary ──
         print("\n" + "═" * 60)
