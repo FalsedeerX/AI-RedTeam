@@ -1,75 +1,111 @@
 import { useState } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import EmailEntry from './pages/EmailEntry'
 import TermsModal from './pages/TermsModal'
-import ProjectScopeManager from './pages/ProjectScopeManager'
+import HowItWorks from './pages/HowItWorks'
+import DashboardHome from './pages/DashboardHome'
+import ProjectWorkspace from './pages/ProjectWorkspace'
 import Dashboard from './pages/Dashboard'
+import TopNav from './components/TopNav'
 import { setAuthUserId } from './lib/api'
-import './App.css'
 
-// Main App Component
-// Routing flow: email -> terms-agreement -> project-scope -> dashboard
+// Auth flow:  login → terms → guide → app (react-router routes)
+// Pre-auth states are managed with useState (they are transient and don't
+// benefit from URL routing — a page refresh during login resets to login anyway).
 function App() {
-  const [currentPage, setCurrentPage] = useState('email')
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [scanType, setScanType] = useState('')
-  const [targets, setTargets] = useState([])
-  const [projectId, setProjectId] = useState(null)
+  const [authState, setAuthState] = useState('login')
+  const [username, setUsername]   = useState('')
+  const [email, setEmail]         = useState('')
 
-  // onVerify now receives (username, email, userId) from EmailEntry.
-  // We store userId in the api module so every subsequent request includes X-User-Id.
   const handleVerify = (name, userEmail, userId) => {
     setAuthUserId(userId)
     setUsername(name)
     setEmail(userEmail)
-    setCurrentPage('terms-agreement')
+    setAuthState('terms')
   }
 
-  const handleTermsAccepted = () => {
-    setCurrentPage('project-scope')
-  }
+  const handleTermsAccepted = () => setAuthState('guide')
 
   const handleTermsDeclined = () => {
-    setCurrentPage('email')
+    setAuthState('login')
     setUsername('')
     setEmail('')
   }
 
-  // ProjectScopeManager passes (scanType, targetValues, projectId)
-  const handleStartScan = (type, targetList, projId) => {
-    setScanType(type)
-    setTargets(targetList)
-    setProjectId(projId ?? null)
-    setCurrentPage('dashboard')
+  const handleGuideComplete = () => setAuthState('app')
+
+  const handleSignOut = () => {
+    setAuthState('login')
+    setUsername('')
+    setEmail('')
+    setAuthUserId(null)
   }
 
+  // ── Pre-auth screens ──────────────────────────────────────────────────────
+  if (authState === 'login') {
+    return <EmailEntry onVerify={handleVerify} />
+  }
+
+  if (authState === 'terms') {
+    return (
+      <TermsModal
+        username={username}
+        email={email}
+        onAccept={handleTermsAccepted}
+        onDecline={handleTermsDeclined}
+      />
+    )
+  }
+
+  if (authState === 'guide') {
+    return <HowItWorks onComplete={handleGuideComplete} />
+  }
+
+  // ── Authenticated app — react-router takes over ───────────────────────────
   return (
-    <div>
-      {currentPage === 'email' ? (
-        <EmailEntry onVerify={handleVerify} />
-      ) : currentPage === 'terms-agreement' ? (
-        <TermsModal
-          username={username}
-          email={email}
-          onAccept={handleTermsAccepted}
-          onDecline={handleTermsDeclined}
-        />
-      ) : currentPage === 'project-scope' ? (
-        <ProjectScopeManager
-          username={username}
-          email={email}
-          onStartScan={handleStartScan}
-        />
-      ) : (
-        <Dashboard
-          username={username}
-          email={email}
-          targets={targets}
-          scanType={scanType}
-          projectId={projectId}
-        />
-      )}
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      <Route
+        path="/dashboard"
+        element={
+          <>
+            <TopNav username={username} onSignOut={handleSignOut} />
+            <DashboardHome username={username} />
+          </>
+        }
+      />
+
+      <Route
+        path="/guide"
+        element={
+          <>
+            <TopNav username={username} onSignOut={handleSignOut} />
+            {/* Standalone guide — no onComplete prop, shows "Back to Dashboard" CTA */}
+            <HowItWorks />
+          </>
+        }
+      />
+
+      <Route
+        path="/projects/:projectId"
+        element={
+          <>
+            <TopNav username={username} onSignOut={handleSignOut} />
+            <ProjectWorkspace username={username} />
+          </>
+        }
+      />
+
+      {/* Full-screen scan terminal — no TopNav chrome */}
+      <Route
+        path="/projects/:projectId/runs/:runId"
+        element={<Dashboard />}
+      />
+
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   )
 }
 
