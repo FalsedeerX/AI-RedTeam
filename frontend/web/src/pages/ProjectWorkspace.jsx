@@ -75,8 +75,8 @@ export default function ProjectWorkspace({ username }) {
   // Findings tab state
   const [findings, setFindings] = React.useState([]);
   const [loadingFindings, setLoadingFindings] = React.useState(false);
-  const [/*findingsError*/, setFindingsError] = React.useState('');
-  const [/*latestRunId*/, setLatestRunId] = React.useState(null);
+  //const [/*findingsError*/, setFindingsError] = React.useState('');
+  //const [/*latestRunId*/, setLatestRunId] = React.useState(null);
 
   // Reports tab state
   const [reports, setReports] = React.useState([]);
