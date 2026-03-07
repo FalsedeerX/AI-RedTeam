@@ -75,8 +75,8 @@ export default function ProjectWorkspace({ username }) {
   // Findings tab state
   const [findings, setFindings] = React.useState([]);
   const [loadingFindings, setLoadingFindings] = React.useState(false);
-  //const [/*findingsError*/, setFindingsError] = React.useState('');
-  //const [/*latestRunId*/, setLatestRunId] = React.useState(null);
+  const [_findingsError, setFindingsError] = React.useState('');
+  const [_latestRunId, setLatestRunId] = React.useState(null);
 
   // Reports tab state
   const [reports, setReports] = React.useState([]);
@@ -123,14 +123,14 @@ export default function ProjectWorkspace({ username }) {
     if (activeTab === 'findings' && findings.length === 0 && !loadingFindings) {
       loadFindings();
     }
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load reports when switching to reports tab ───────────────────────────────
   React.useEffect(() => {
     if (activeTab === 'reports' && reports.length === 0 && !loadingReports) {
       loadReports();
     }
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Close switcher on outside click ─────────────────────────────────────────
   React.useEffect(() => {
