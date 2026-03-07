@@ -9,7 +9,7 @@ export default function Dashboard() {
   const location = useLocation();
 
   // Scan config comes from navigation state set by ProjectWorkspace
-  const { targets = [], scanType = 'web', username = '' } = location.state || {};
+  const { targets = [], username = '' } = location.state || {};
 
   const [logs, setLogs] = React.useState([]);
   const [scanStatus, setScanStatus] = React.useState('RUNNING');

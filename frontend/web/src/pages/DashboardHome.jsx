@@ -16,7 +16,7 @@ function relativeTime(isoStr) {
   return new Date(isoStr).toLocaleDateString();
 }
 
-export default function DashboardHome({ username }) {
+export default function DashboardHome({ }) {
   const navigate = useNavigate();
   const [projects, setProjects] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
