@@ -1,42 +1,45 @@
 import { useState } from 'react'
 import EmailEntry from './pages/EmailEntry'
 import TermsModal from './pages/TermsModal'
-import ScopeConfig from './pages/ScopeConfig'
+import ProjectScopeManager from './pages/ProjectScopeManager'
 import Dashboard from './pages/Dashboard'
+import { setAuthUserId } from './lib/api'
 import './App.css'
 
 // Main App Component
-// Routing flow: email -> terms-agreement -> scope-config -> dashboard
+// Routing flow: email -> terms-agreement -> project-scope -> dashboard
 function App() {
   const [currentPage, setCurrentPage] = useState('email')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [scanType, setScanType] = useState('')
   const [targets, setTargets] = useState([])
+  const [projectId, setProjectId] = useState(null)
 
-  const handleVerify = (name, userEmail) => {
+  // onVerify now receives (username, email, userId) from EmailEntry.
+  // We store userId in the api module so every subsequent request includes X-User-Id.
+  const handleVerify = (name, userEmail, userId) => {
+    setAuthUserId(userId)
     setUsername(name)
     setEmail(userEmail)
-    // Transition to terms agreement (Legal Airlock)
     setCurrentPage('terms-agreement')
   }
 
   const handleTermsAccepted = () => {
-    // User accepted terms, proceed to scope configuration
-    setCurrentPage('scope-config')
+    setCurrentPage('project-scope')
   }
 
   const handleTermsDeclined = () => {
-    // User declined terms, return to email entry
     setCurrentPage('email')
-    // Clear user data
     setUsername('')
     setEmail('')
   }
 
-  const handleStartScan = (type, targetList) => {
+  // ProjectScopeManager passes (scanType, targetValues, projectId)
+  const handleStartScan = (type, targetList, projId) => {
     setScanType(type)
     setTargets(targetList)
+    setProjectId(projId ?? null)
     setCurrentPage('dashboard')
   }
 
@@ -45,24 +48,25 @@ function App() {
       {currentPage === 'email' ? (
         <EmailEntry onVerify={handleVerify} />
       ) : currentPage === 'terms-agreement' ? (
-        <TermsModal 
-          username={username} 
-          email={email} 
+        <TermsModal
+          username={username}
+          email={email}
           onAccept={handleTermsAccepted}
           onDecline={handleTermsDeclined}
         />
-      ) : currentPage === 'scope-config' ? (
-        <ScopeConfig 
-          username={username} 
-          email={email} 
+      ) : currentPage === 'project-scope' ? (
+        <ProjectScopeManager
+          username={username}
+          email={email}
           onStartScan={handleStartScan}
         />
       ) : (
-        <Dashboard 
-          username={username} 
-          email={email} 
-          targets={targets} 
-          scanType={scanType} 
+        <Dashboard
+          username={username}
+          email={email}
+          targets={targets}
+          scanType={scanType}
+          projectId={projectId}
         />
       )}
     </div>

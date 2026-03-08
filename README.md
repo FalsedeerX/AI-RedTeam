@@ -25,92 +25,157 @@ Team S06 – Fall 2025 - Spring 2026
 
 
 
-## EVERYTHING BELOW IS OUTDATED. PLEASE IGNORE
+## Project Structure
 
-
-## Setup & Installation
-
-### 1. Create and Activate Virtual Environment
-
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-# On Windows:
-# venv\Scripts\activate
+```
+AI-RedTeam/
+├── backend/                        # FastAPI backend (port 8000)
+│   ├── backend.py                  # App entrypoint — registers all routers
+│   ├── requirements.txt            # Python dependencies
+│   ├── alembic/                    # Database migration scripts
+│   ├── app/
+│   │   ├── api/routes/             # HTTP route handlers (users, projects, targets, scans)
+│   │   ├── db/                     # SQLAlchemy models and brokers (CRUD layer)
+│   │   ├── domain/                 # Enums and domain types
+│   │   ├── schema/                 # Pydantic request/response schemas
+│   │   ├── services/               # scan_engine.py — AI agent drop-in point
+│   │   └── core/                   # Config, security (argon2 hashing)
+│   └── README.md                   # Database schema reference
+├── frontend/
+│   └── web/                        # React + Vite frontend (port 5173)
+│       └── src/
+│           ├── lib/api.js          # Shared fetch helpers + X-User-Id injection
+│           └── pages/              # EmailEntry, TermsModal, ProjectScopeManager, Dashboard, ReportView
+├── scripts/
+│   ├── dotenv_template             # Template for .env file
+│   └── database_setup/            # init.sql + setup.sh for Postgres bootstrap
+├── service/                        # LangChain/RAG AI service (standalone)
+├── test/                           # Legacy Flask demo tests
+└── docs/                           # Project documentation and assignment files
 ```
 
-### 2. Install Dependencies
+---
+
+## Prerequisites
+
+- Python 3.11
+- Node.js 18+
+- PostgreSQL 14 (macOS: `brew install postgresql@14`)
+
+---
+
+## One-Time Setup
+
+### 1. Create the Python virtual environment
 
 ```bash
-pip install Flask flask-cors
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
+```
+
+### 2. Configure environment variables
+
+```bash
+cp scripts/dotenv_template .env
+```
+
+Open `.env` and fill in the two blank password fields:
+```
+DB_RUNTIME_PASSWORD=<choose a password>
+DB_MIGRATE_PASSWORD=<choose a password>
+```
+
+The other values (`DB_PORT`, `DB_HOST`, `DB_NAME`, etc.) are pre-filled for a standard local Postgres setup.
+
+### 3. Bootstrap the database
+
+Start Postgres, then run the database setup script. On macOS with Homebrew:
+
+```bash
+brew services start postgresql@14
+
+source .env && psql postgres \
+  -v db_name="$DB_NAME" \
+  -v db_schema="$DB_SCHEMA" \
+  -v db_owner_user="$DB_OWNER_USER" \
+  -v db_owner_password="$DB_OWNER_PASSWORD" \
+  -v db_runtime_user="$DB_RUNTIME_USER" \
+  -v db_runtime_password="$DB_RUNTIME_PASSWORD" \
+  -v db_migrate_user="$DB_MIGRATE_USER" \
+  -v db_migrate_password="$DB_MIGRATE_PASSWORD" \
+  -f scripts/database_setup/init.sql
+```
+
+On Linux, use `sudo -u postgres psql` instead and run from `scripts/database_setup/` using `bash setup.sh`.
+
+### 4. Run database migrations
+
+```bash
+cd backend
+alembic upgrade head
+cd ..
+```
+
+### 5. Install frontend dependencies
+
+```bash
+cd frontend/web
+npm install
+cd ../..
 ```
 
 ---
 
 ## Running the Application
 
-### Step 1: Start the Backend Server
+Open two terminal windows from the project root.
 
+**Terminal 1 — Backend**
 ```bash
+source venv/bin/activate
 python backend/backend.py
 ```
+Backend runs at `http://127.0.0.1:8000`  
+Interactive API docs (Swagger UI): `http://127.0.0.1:8000/docs`
 
-The backend will run on `http://127.0.0.1:5000`
-
-### Step 2: Start the Frontend Server
-
-Open a **new terminal window** (keep the backend running) and run:
-
+**Terminal 2 — Frontend**
 ```bash
-cd frontend
-python -m http.server 8080
+cd frontend/web
+npm run dev
 ```
+Frontend runs at `http://localhost:5173`
 
-The frontend will be available at `http://localhost:8080/demo.html`
-
-### Step 3: Access the Application
-
-Open your browser and navigate to:
-```
-http://localhost:8080/demo.html
-```
+> On every subsequent session you only need to activate the venv and start both servers. If Postgres was stopped (e.g. after a reboot), run `brew services start postgresql@14` first.
 
 ---
 
-## Project Structure
+## API Overview
 
-```
-AI-RedTeam/
-├── backend/
-│   ├── backend.py          # Flask API server (port 5000)
-│   └── emails.json         # Stores verified emails
-└── frontend/
-    └── demo.html           # Main frontend application
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/users/register` | Create a new account |
+| POST | `/users/auth` | Log in — returns `user_id` UUID |
+| GET | `/users/me` | Get current user profile |
+| GET | `/projects` | List all projects for current user |
+| POST | `/projects` | Create a new project |
+| GET | `/projects/{id}` | Get project detail |
+| DELETE | `/projects/{id}` | Delete a project |
+| GET | `/projects/{id}/targets` | List targets for a project |
+| POST | `/projects/{id}/targets` | Add a target (type auto-inferred from value) |
+| DELETE | `/projects/{id}/targets/{tid}` | Remove a target |
+| POST | `/scans/start` | Start a scan — returns `run_id` |
+| GET | `/scans/{run_id}/status` | Poll scan status and logs |
+| POST | `/scans/{run_id}/approve` | Approve a pending HITL action |
+| POST | `/scans/{run_id}/deny` | Deny a pending HITL action |
+| POST | `/scans/{run_id}/kill` | Emergency stop |
 
----
-
-## Current File Structure and Status
-
-### Top-Level Directory
-- **README.md** - Project documentation containing setup instructions, running procedures, and project overview.
-- **.gitignore** - Git ignore configuration file that excludes virtual environments, Python cache files, IDE files, and sensitive data files.
-
-### Backend Directory (`backend/`)
-- **backend.py** - Flask API server that handles email verification routes, processes email submissions via the `/verify` endpoint, extracts usernames from emails, and manages email storage.
-- **emails.json** - JSON data file that stores verified email addresses along with extracted usernames and timestamps for each verification.
-
-### Frontend Directory (`frontend/`)
-- **demo.html** - Primary application UI built with React that provides the email entry form, handles email verification API calls, and displays the dashboard interface with scan type selection and attack initiation.
+All protected routes require the `X-User-Id: <uuid>` request header, obtained from `POST /users/auth`.
 
 ---
 
 ## Notes
 
-- The backend must be running before using the frontend
-- Emails submitted through the `/verify` endpoint are saved to `backend/emails.json`
-- Keep both terminal windows open while using the application
+- The backend must be running before the frontend is opened
+- The AI scan engine (`backend/app/services/scan_engine.py`) currently runs a simulated scan. Replace the body of `run_agent()` with the real LangChain agent when it is ready
+- Database schema reference: `backend/README.md`
