@@ -1,23 +1,39 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import EmailEntry from './pages/EmailEntry'
-import TermsModal from './pages/TermsModal'
-import HowItWorks from './pages/HowItWorks'
-import DashboardHome from './pages/DashboardHome'
+import AuthLanding     from './pages/AuthLanding'
+import LoginPage       from './pages/LoginPage'
+import RegisterPage    from './pages/RegisterPage'
+import TermsModal      from './pages/TermsModal'
+import HowItWorks      from './pages/HowItWorks'
+import DashboardHome   from './pages/DashboardHome'
 import ProjectWorkspace from './pages/ProjectWorkspace'
-import Dashboard from './pages/Dashboard'
-import TopNav from './components/TopNav'
+import Dashboard       from './pages/Dashboard'
+import TopNav          from './components/TopNav'
+import WelcomeBanner   from './components/WelcomeBanner'
 import { setAuthUserId } from './lib/api'
 
-// Auth flow:  login → terms → guide → app (react-router routes)
-// Pre-auth states are managed with useState (they are transient and don't
-// benefit from URL routing — a page refresh during login resets to login anyway).
+// Auth flow:
+//   landing → login  → app
+//   landing → register → terms → guide → app (isNewUser = true)
+//
+// Pre-auth states are managed with useState (transient; page refresh resets to landing).
 function App() {
-  const [authState, setAuthState] = useState('login')
-  const [username, setUsername]   = useState('')
-  const [email, setEmail]         = useState('')
+  const [authState, setAuthState]   = useState('landing')
+  const [username, setUsername]     = useState('')
+  const [email, setEmail]           = useState('')
+  const [showWelcome, setShowWelcome] = useState(false)
 
-  const handleVerify = (name, userEmail, userId) => {
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleLoginSuccess = (name, userEmail, userId) => {
+    setAuthUserId(userId)
+    setUsername(name)
+    setEmail(userEmail)
+    setShowWelcome(false)
+    setAuthState('app')
+  }
+
+  const handleRegisterSuccess = (name, userEmail, userId) => {
     setAuthUserId(userId)
     setUsername(name)
     setEmail(userEmail)
@@ -26,24 +42,56 @@ function App() {
 
   const handleTermsAccepted = () => setAuthState('guide')
 
+  // Declining terms sends back to credentials, not all the way to landing
   const handleTermsDeclined = () => {
-    setAuthState('login')
-    setUsername('')
-    setEmail('')
-  }
-
-  const handleGuideComplete = () => setAuthState('app')
-
-  const handleSignOut = () => {
-    setAuthState('login')
+    setAuthState('register')
     setUsername('')
     setEmail('')
     setAuthUserId(null)
   }
 
-  // ── Pre-auth screens ──────────────────────────────────────────────────────
+  const handleGuideComplete = () => {
+    setShowWelcome(true)
+    setAuthState('app')
+  }
+
+  const handleSignOut = () => {
+    setAuthState('landing')
+    setUsername('')
+    setEmail('')
+    setShowWelcome(false)
+    setAuthUserId(null)
+  }
+
+  // ── Pre-auth screens ─────────────────────────────────────────────────────────
+
+  if (authState === 'landing') {
+    return (
+      <AuthLanding
+        onLogin={() => setAuthState('login')}
+        onRegister={() => setAuthState('register')}
+      />
+    )
+  }
+
   if (authState === 'login') {
-    return <EmailEntry onVerify={handleVerify} />
+    return (
+      <LoginPage
+        onBack={() => setAuthState('landing')}
+        onSuccess={handleLoginSuccess}
+        onGoRegister={() => setAuthState('register')}
+      />
+    )
+  }
+
+  if (authState === 'register') {
+    return (
+      <RegisterPage
+        onBack={() => setAuthState('landing')}
+        onSuccess={handleRegisterSuccess}
+        onGoLogin={() => setAuthState('login')}
+      />
+    )
   }
 
   if (authState === 'terms') {
@@ -61,7 +109,7 @@ function App() {
     return <HowItWorks onComplete={handleGuideComplete} />
   }
 
-  // ── Authenticated app — react-router takes over ───────────────────────────
+  // ── Authenticated app — react-router takes over ──────────────────────────────
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -72,6 +120,9 @@ function App() {
           <>
             <TopNav username={username} onSignOut={handleSignOut} />
             <DashboardHome username={username} />
+            {showWelcome && (
+              <WelcomeBanner onDismiss={() => setShowWelcome(false)} />
+            )}
           </>
         }
       />
@@ -81,7 +132,7 @@ function App() {
         element={
           <>
             <TopNav username={username} onSignOut={handleSignOut} />
-            {/* Standalone guide — no onComplete prop, shows "Back to Dashboard" CTA */}
+            {/* Standalone guide — no onComplete prop shows "Back to Dashboard" CTA */}
             <HowItWorks />
           </>
         }

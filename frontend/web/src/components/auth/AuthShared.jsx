@@ -1,0 +1,328 @@
+import { useState } from 'react';
+
+// ── Color tokens ──────────────────────────────────────────────────────────────
+export const C = {
+  bg:           '#16141a',
+  surface:      '#1e1c23',
+  surfaceHover: '#232029',
+  border:       '#2a2730',
+  borderFocus:  '#e8845a',
+  accent:       '#e8845a',
+  accentHover:  '#df7348',
+  accentText:   '#fff',
+  accentSubtle: 'rgba(232,132,90,0.1)',
+  text:         '#f2efe8',
+  muted:        '#7a7585',
+  mutedLight:   '#9e99a8',
+  success:      '#6fcf97',
+  danger:       '#eb6b6b',
+  dangerSubtle: 'rgba(235,107,107,0.08)',
+};
+
+// ── Shared style objects ──────────────────────────────────────────────────────
+export const S = {
+  page: {
+    minHeight: '100vh',
+    background: C.bg,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    color: C.text,
+    padding: '24px',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  card: {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 20,
+    padding: '40px 38px 36px',
+    width: '100%',
+    maxWidth: 420,
+    position: 'relative',
+    zIndex: 1,
+    boxShadow: '0 24px 64px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03) inset',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 36,
+  },
+  logoMark: {
+    width: 34,
+    height: 34,
+    background: `linear-gradient(135deg, ${C.accent}, #c96a3e)`,
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 13,
+    fontWeight: 700,
+    color: '#fff',
+    letterSpacing: '-0.3px',
+    boxShadow: `0 4px 12px rgba(232,132,90,0.3)`,
+  },
+  logoText: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: C.text,
+    letterSpacing: '-0.2px',
+  },
+  h1: {
+    fontSize: 24,
+    fontWeight: 700,
+    letterSpacing: '-0.6px',
+    marginBottom: 8,
+    color: C.text,
+    lineHeight: 1.25,
+  },
+  sub: {
+    fontSize: 14,
+    color: C.muted,
+    marginBottom: 30,
+    lineHeight: 1.65,
+  },
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    display: 'block',
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: C.mutedLight,
+    marginBottom: 7,
+    letterSpacing: '0.01em',
+  },
+  input: {
+    width: '100%',
+    background: C.bg,
+    border: `1px solid ${C.border}`,
+    borderRadius: 10,
+    padding: '11px 14px',
+    fontSize: 14,
+    color: C.text,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    transition: 'border-color 0.18s, box-shadow 0.18s',
+  },
+  btnPrimary: {
+    width: '100%',
+    background: `linear-gradient(135deg, ${C.accent}, #d4714a)`,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    padding: '12px 0',
+    fontSize: 14.5,
+    fontWeight: 600,
+    letterSpacing: '-0.1px',
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    boxShadow: `0 4px 18px rgba(232,132,90,0.28)`,
+    transition: 'opacity 0.15s, transform 0.1s',
+    marginTop: 6,
+  },
+  btnSecondary: {
+    width: '100%',
+    background: 'transparent',
+    color: C.mutedLight,
+    border: `1px solid ${C.border}`,
+    borderRadius: 10,
+    padding: '11px 0',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    transition: 'border-color 0.15s, color 0.15s',
+    marginTop: 10,
+  },
+  divider: {
+    height: 1,
+    background: C.border,
+    margin: '26px 0',
+  },
+  errorBox: {
+    background: C.dangerSubtle,
+    border: `1px solid rgba(235,107,107,0.2)`,
+    borderRadius: 9,
+    padding: '10px 14px',
+    fontSize: 13,
+    color: '#eb8f8f',
+    marginBottom: 18,
+    lineHeight: 1.5,
+  },
+  link: {
+    color: C.accent,
+    cursor: 'pointer',
+    fontSize: 13.5,
+    fontWeight: 500,
+  },
+};
+
+// ── Noise + glow SVG background ───────────────────────────────────────────────
+const noise = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`;
+
+// ── AuthPageWrapper ───────────────────────────────────────────────────────────
+export function AuthPageWrapper({ children }) {
+  return (
+    <div style={S.page}>
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundImage: noise,
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      <div style={{
+        position: 'fixed',
+        width: 700,
+        height: 500,
+        borderRadius: '50%',
+        background: 'radial-gradient(ellipse, rgba(232,132,90,0.055) 0%, transparent 65%)',
+        top: '30%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+      {children}
+    </div>
+  );
+}
+
+// ── AuthCard ──────────────────────────────────────────────────────────────────
+export function AuthCard({ children }) {
+  return <div style={S.card}>{children}</div>;
+}
+
+// ── Logo ──────────────────────────────────────────────────────────────────────
+export function Logo() {
+  return (
+    <div style={S.logo}>
+      <div style={S.logoMark}>RT</div>
+      <span style={S.logoText}>AI RedTeam</span>
+    </div>
+  );
+}
+
+// ── Field ─────────────────────────────────────────────────────────────────────
+export function Field({ label, type = 'text', placeholder, value, onChange, onKeyDown, autoComplete }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={S.fieldGroup}>
+      <label style={S.label}>{label}</label>
+      <input
+        style={{
+          ...S.input,
+          borderColor: focused ? C.borderFocus : C.border,
+          boxShadow: focused ? `0 0 0 3px rgba(232,132,90,0.12)` : 'none',
+        }}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onKeyDown={onKeyDown}
+        autoComplete={autoComplete}
+      />
+    </div>
+  );
+}
+
+// ── BackBtn ───────────────────────────────────────────────────────────────────
+export function BackBtn({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'none',
+        border: 'none',
+        color: C.muted,
+        cursor: 'pointer',
+        fontSize: 13,
+        padding: '0 0 22px 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+        fontWeight: 500,
+      }}
+    >
+      ← Back
+    </button>
+  );
+}
+
+// ── StepDots ──────────────────────────────────────────────────────────────────
+export function StepDots({ total, current }) {
+  return (
+    <div style={{ display: 'flex', gap: 5, marginBottom: 28, alignItems: 'center' }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            width: i === current ? 22 : 6,
+            height: 6,
+            borderRadius: 3,
+            background:
+              i === current
+                ? C.accent
+                : i < current
+                ? 'rgba(232,132,90,0.35)'
+                : C.border,
+            transition: 'width 0.25s ease, background 0.25s ease',
+          }}
+        />
+      ))}
+      <span style={{ fontSize: 12, color: C.muted, marginLeft: 6, fontWeight: 500 }}>
+        {current + 1} / {total}
+      </span>
+    </div>
+  );
+}
+
+// ── PrimaryButton ─────────────────────────────────────────────────────────────
+export function PrimaryButton({ children, onClick, disabled = false, type = 'button' }) {
+  return (
+    <button
+      type={type}
+      style={{ ...S.btnPrimary, opacity: disabled ? 0.55 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.opacity = '0.88'; }}
+      onMouseLeave={e => { e.currentTarget.style.opacity = disabled ? '0.55' : '1'; }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── SecondaryButton ───────────────────────────────────────────────────────────
+export function SecondaryButton({ children, onClick, type = 'button' }) {
+  return (
+    <button
+      type={type}
+      style={S.btnSecondary}
+      onClick={onClick}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = C.accent;
+        e.currentTarget.style.color = C.text;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = C.border;
+        e.currentTarget.style.color = C.mutedLight;
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── ErrorBox ──────────────────────────────────────────────────────────────────
+export function ErrorBox({ message }) {
+  if (!message) return null;
+  return <div style={S.errorBox}>{message}</div>;
+}
