@@ -61,6 +61,7 @@ def main():
             "llm_calls": 0,
             "current_phase": "recon",
             "plan": "",
+            "findings": [],
         }
         config_run = {"recursion_limit": 30} # Safety limit
         
