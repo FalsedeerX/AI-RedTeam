@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { C } from './auth/AuthShared';
 
 const AUTO_DISMISS_MS = 7000;
@@ -6,6 +6,11 @@ const AUTO_DISMISS_MS = 7000;
 export default function WelcomeBanner({ onDismiss }) {
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
+
+  const dismiss = useCallback(() => {
+    setLeaving(true);
+    setTimeout(onDismiss, 320);
+  }, [onDismiss]);
 
   useEffect(() => {
     // Slight delay so the dashboard renders first, then banner slides in
@@ -15,12 +20,7 @@ export default function WelcomeBanner({ onDismiss }) {
       clearTimeout(enterTimer);
       clearTimeout(exitTimer);
     };
-  }, []);
-
-  const dismiss = () => {
-    setLeaving(true);
-    setTimeout(onDismiss, 320);
-  };
+  }, [dismiss]);
 
   return (
     <div

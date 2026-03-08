@@ -31,7 +31,7 @@ export default function LoginPage({ onBack, onSuccess, onGoRegister }) {
       const data = await apiPost('/users/auth', { email, password });
       const username = email.split('@')[0];
       onSuccess(username, email, data.user_id);
-    } catch (err) {
+    } catch (_err) {
       setError("That email or password doesn't match our records.");
     } finally {
       setLoading(false);
