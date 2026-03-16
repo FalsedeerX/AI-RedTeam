@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+<!-- Page title overwrite ---->
+{% block title %}
+Express Dashboard
+{% endblock %}
+
+<!-- Main content overwrite -->
+{% block content %}
+
+<div class="d-flex flex-column flex-grow-1 p-2">
+	<!-- Card 1 - Agent management -->
+	{% include "partials/agent-card.html" %}
+</div>
+
+<!-- Load jS script to modify DOM -->
+<script type="module" src="{{ url_for("static", filename="js/dashboard.js") }}"></script>
+
+{% endblock %}
