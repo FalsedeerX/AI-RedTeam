@@ -1,0 +1,18 @@
+version = 1
+
+[beacon]
+sleep_min = 1
+sleep_max = 3
+workdays = [1, 2, 3, 4, 5]
+workhours = [9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+[envelope]
+passphrase = "Top-Secret-Key"
+salt = "8629e0ea91562eb9f682947d6c93e7ba84905c4b9a645b356dd4f9083eac3a60"
+payload_field = "data"
+
+[c2server]
+base_url = "http://127.0.0.1:5000"
+beacon_path = "/api/agent/status"
+report_path = "/api/agent/upload"
+
