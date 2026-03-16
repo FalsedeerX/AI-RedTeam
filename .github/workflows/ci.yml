@@ -1,11 +1,9 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
 jobs:
   backend-test:
     runs-on: ubuntu-latest
@@ -57,6 +55,10 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
+      - name: Test
+        working-directory: ./frontend
+        run: npm run test
+        
   service-unit-test:
     runs-on: ubuntu-latest
 
@@ -78,3 +80,4 @@ jobs:
       - name: Run CriticPipeline unit & integration tests
         working-directory: ./service
         run: pytest tests/ -v
+

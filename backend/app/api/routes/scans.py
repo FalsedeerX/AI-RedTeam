@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import get_current_user_id
-from app.db.broker import RunsBroker
+from app.db.broker import RunsBroker, FindingsBroker
 from app.domain.runs import RunStatus, RunType, RunPurpose
 from app.services import scan_engine
 
@@ -47,10 +47,22 @@ class ScanStatusResponse(BaseModel):
     logs: list[dict]
     pending_action: str | None = None
     report_type: str
+    report_id: str | None = None
 
 
 class ActionResponse(BaseModel):
     success: bool
+
+
+class FindingResponse(BaseModel):
+    id: str
+    finding_type: str
+    severity: str
+    title: str
+    content: str
+    evidence: str
+    confidence: int
+    run_id: str
 
 
 # ---------------------------------------------------------------------------
@@ -61,8 +73,10 @@ class ScansRouter:
     def __init__(self):
         self.router = router
         self.broker = RunsBroker()
+        self.findings_broker = FindingsBroker()
         self.router.post("/start", response_model=ScanStartResponse, status_code=201)(self.start_scan)
         self.router.get("/{run_id}/status", response_model=ScanStatusResponse)(self.get_status)
+        self.router.get("/{run_id}/findings", response_model=list[FindingResponse])(self.get_findings)
         self.router.post("/{run_id}/approve", response_model=ActionResponse)(self.approve_action)
         self.router.post("/{run_id}/deny", response_model=ActionResponse)(self.deny_action)
         self.router.post("/{run_id}/kill", response_model=ActionResponse)(self.kill_scan)
@@ -117,7 +131,29 @@ class ScansRouter:
             logs=state.logs,
             pending_action=state.pending_action,
             report_type=state.report_type,
+            report_id=state.report_id,
         )
+
+    def get_findings(
+        self,
+        run_id: str,
+        user_id: UUID = Depends(get_current_user_id),
+    ) -> list[FindingResponse]:
+        """Return all persisted findings for a completed run."""
+        rows = self.findings_broker.get_bulk({"run_id": UUID(run_id)})
+        return [
+            FindingResponse(
+                id=str(row.id),
+                finding_type=row.finding_type,
+                severity=row.severity,
+                title=row.title,
+                content=row.content,
+                evidence=row.evidence,
+                confidence=row.confidence,
+                run_id=str(row.run_id),
+            )
+            for row in rows
+        ]
 
     def approve_action(
         self,

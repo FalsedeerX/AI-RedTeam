@@ -1,0 +1,45 @@
+<!doctype html>
+<head>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Express-C2</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+	</head>
+
+	<body>
+		<!-- Return to agent dashboard -->
+		<a href="/">Return to dashboard</a>
+		<h1>Agent Control</h1>
+
+		<section>
+			<h2>Task Scheduler</h2>
+			<p>Agent ID: {{ agent_id }}</p>
+
+			<!-- Task selection drop-down list  -->
+			<label for="task-select">Task: </label>
+			<select id="task-select"></select>
+
+			<!-- Task metadata display -->
+			<p id="task-metadata"></p>
+			<br>
+
+			<!-- Dynamic rendering required params of the selected task -->
+			<form id="task-form">
+				<div id="task-inputs"></div>
+				<button type="submit">Submit Task</button>
+			</form>
+		</section>
+
+		<!-- Task result display area, used <pre> to preserve original format -->
+		<section>
+			<h2>Task Ouput</h2>
+			<pre id="output"></pre>
+		</section>
+
+		<!-- Inject the current agent_id into JS global var -->
+		<script>const agentId = "{{ agent_id }}"</script>
+		<script src="{{ url_for("static", filename="js/task-control.js") }}"></script>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+	</body>
+</head>
