@@ -15,8 +15,6 @@ describe('setAuthUserId / authHeaders', () => {
   it('should include X-User-Id header after setAuthUserId is called', () => {
     setAuthUserId('test-uuid-1234')
 
-    // Reconstruct what authHeaders() returns by replicating the logic
-    const headers = { 'Content-Type': 'application/json' }
     // After setting, the module holds the id — we verify the setter
     // doesn't throw and accepts a valid UUID string
     expect(() => setAuthUserId('test-uuid-1234')).not.toThrow()
