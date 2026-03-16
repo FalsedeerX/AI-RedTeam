@@ -5,6 +5,8 @@
 
 import sys
 import os
+import datetime
+import atexit
 from langchain_core.messages import HumanMessage
 from redteam_agent import ingest_documents, get_agent, config
 from redteam_agent.vector_store import clear_vector_store
@@ -32,11 +34,68 @@ MAGENTA = lambda t: _c("35", t)
 BLUE    = lambda t: _c("34", t)
 BOLD    = lambda t: _c("1", t)
 
+class TeeOutput:
+    """Duplicates writes to both the original stream and a log file.
+    ANSI colour codes are preserved as-is in the log file — view with
+    'cat <file>' (Linux/macOS) or a terminal-aware viewer (e.g. 'less -R').
+    """
+    def __init__(self, original, log_file):
+        self._original = original
+        self._log = log_file
+
+    def write(self, data):
+        self._original.write(data)
+        self._log.write(data)
+        return len(data)
+
+    def flush(self):
+        self._original.flush()
+        self._log.flush()
+
+    def isatty(self):
+        return self._original.isatty()
+
+    def fileno(self):
+        return self._original.fileno()
+
+    @property
+    def encoding(self):
+        return self._original.encoding
+
+    @property
+    def errors(self):
+        return self._original.errors
+
+    def reconfigure(self, **kwargs):
+        pass  # Already configured by the underlying stream
+
+
+# ── Set up file logging (ANSI colour codes preserved) ──
+_log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(_log_dir, exist_ok=True)
+_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+_log_path = os.path.join(_log_dir, f"test_agent_planner_{_timestamp}.log")
+_log_file = open(_log_path, "w", encoding="utf-8", errors="replace")
+atexit.register(_log_file.close)
+
+sys.stdout = TeeOutput(sys.stdout, _log_file)
+sys.stderr = TeeOutput(sys.stderr, _log_file)
+
+# Also capture interactive input prompts + user answers in the log
+_builtin_input = input
+def input(prompt=""):   # noqa: A001 — intentional shadow of built-in
+    response = _builtin_input(prompt)
+    # The prompt is already tee'd via stdout; just record the user's reply.
+    _log_file.write(prompt +response + "\n")
+    _log_file.flush()
+    return response
+
 
 def main():
     print(BOLD("=" * 60))
     print(BOLD("  AI RedTeam Agent — Planner / Tactician Manual Test"))
     print(BOLD("=" * 60))
+    print(f"\n  {YELLOW('📄 Log file:')} {_log_path}")
 
     print(f"\nConfiguration:")
     print(f"  Embedder : {config.EMBEDDING_MODEL_NAME}")
@@ -99,6 +158,9 @@ def main():
         "plan": "",
         "findings": [],
         "phase_history": [],
+        "rag_query": "",
+        "rag_reason": "",
+        "rag_caller": "",
     }
     config_run = {"configurable": {"thread_id": "test-1"}, "recursion_limit": 100}
 
@@ -146,6 +208,8 @@ def main():
                         label = GREEN(f"▶ TOOL (step {step})")
                     elif node_name == "analyst_node":
                         label = BLUE(f"📊 ANALYST (step {step})")
+                    elif node_name == "rag_node":
+                        label = BOLD(CYAN(f"🔍 RAG (step {step})"))
                     else:
                         label = f"  {node_name} (step {step})"
 

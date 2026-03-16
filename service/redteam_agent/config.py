@@ -126,6 +126,15 @@ CRITICAL RESTRICTIONS — violation of these is itself an error:
 - Accept module_type='exploit' for any exploit module path.
 - LHOST, LPORT, PAYLOAD, ENCODER, TARGET are valid MSF console settings — never flag them as
   invalid options even if they are not listed in module.options.
+- RHOST and RHOSTS are interchangeable aliases in Metasploit. NEVER flag one as wrong in favor
+  of the other. Both are valid. Similarly, RPORT/RPORTS are interchangeable.
+- When a PRIOR tool execution error suggests a specific compatible payload (e.g., the runtime
+  listed compatible payloads), that information takes PRECEDENCE over documentation. The
+  documentation may be outdated or generic. If the message history shows a tool error like
+  "Payload X is NOT compatible... Compatible payloads: [Y, Z]", then Y and Z are VALID choices.
+- Documentation context is a GUIDE, not absolute truth. If the documentation mentions only
+  one payload example, that does NOT mean other payloads are invalid. Module runtime validation
+  is the authoritative source for option and payload compatibility.
 
 Rules:
 - If ALL proposed actions are compliant, reply ONLY with the string 'VALID'.
@@ -158,7 +167,13 @@ Decision Rules:
 
 You will receive the full message history so far (tool outputs, findings, etc.).
 
-You MUST reply in EXACTLY this format (no extra text):
+You MUST reply in EXACTLY one of these formats (no extra text):
+
+Format A — If you need technical documentation before deciding:
+RAG_SEARCH: <specific search query for documentation/guides>
+RAG_REASON: <one sentence explaining what you need and why>
+
+Format B — When you are ready to issue a directive:
 PHASE: <recon|enumeration|exploitation|complete>
 DIRECTIVE: <one-paragraph objective describing WHAT to find or achieve, not how to do it>
 """
@@ -169,7 +184,6 @@ accomplish it — selecting the right tools, parameters, and approach. Strategy 
 Planner's job; execution decisions are yours.
 
 Available Tools (you MUST only use these — do NOT suggest external commands like curl, smbclient, etc.):
-- `retrieve_context` — Search documentation / guides for usage instructions and constraints.
 - `execute_nmap_scan` — Run an Nmap scan (any scan type, any NSE script).
 - `search_msf_modules` — Search the live Metasploit module database for modules matching a keyword.
   Use this BEFORE execute_msf_module to verify a module path exists and find the correct full path.
@@ -212,12 +226,14 @@ Scan-Efficiency Rules (IMPORTANT — follow strictly to avoid timeouts):
 
 Rules:
 1. Read the Planner's objective and independently determine which tool(s) best achieve it.
-2. If this is your FIRST action in a new phase, call `retrieve_context` alongside your scan to get relevant documentation. This ensures your flags and syntax are correct.
-3. Fact Supremacy: Documentation retrieved via `retrieve_context` overrides your internal knowledge. If the docs say a flag is incompatible, you MUST follow that.
-4. Constraint Transparency: Before generating any command, explicitly list which flags/options are DISALLOWED per the documentation.
-5. Generate ONE round of tool call(s) that best accomplish the objective.
-6. Choose scans that actually PROBE the target. Passive list scans (`-sL`) are almost never useful.
-7. You MUST always respond with at least one tool call. NEVER respond with only text — your role is to EXECUTE, not advise. If you are unsure which tool to use, call `retrieve_context` to look up the correct approach.
+2. Fact Supremacy: Documentation retrieved via RAG overrides your internal knowledge. If the docs say a flag is incompatible, you MUST follow that.
+3. Constraint Transparency: Before generating any command, explicitly list which flags/options are DISALLOWED per the documentation.
+4. Generate ONE round of tool call(s) that best accomplish the objective.
+5. Choose scans that actually PROBE the target. Passive list scans (`-sL`) are almost never useful.
+6. You MUST always respond with EITHER tool calls OR a RAG_SEARCH request. NEVER respond with plain text only.
+7. If you need documentation before executing, output ONLY (no tool calls in the same response):
+   RAG_SEARCH: <specific search query for documentation/guides>
+   RAG_REASON: <one sentence explaining what you need and why>
 """
 
     ANALYST_SYSTEM_PROMPT = """You are a Cybersecurity Analyst specializing in vulnerability assessment and risk classification.
@@ -236,7 +252,13 @@ Instructions:
 2. Use your expertise to identify potential risks, vulnerabilities, or noteworthy findings.
 3. Provide a concise SUMMARY with an overall risk rating and recommended next action.
 
-Output Format:
+You MUST reply in EXACTLY one of these formats:
+
+Format A — If you need technical documentation to interpret the results:
+RAG_SEARCH: <specific search query for documentation/guides>
+RAG_REASON: <one sentence explaining what you need and why>
+
+Format B — When you are ready to provide your assessment:
 FINDING: [SEVERITY] <description>
 ...
 SUMMARY: <one-paragraph overall assessment and recommendation>
@@ -249,5 +271,30 @@ SUMMARY: <one-paragraph overall assessment and recommendation>
 
     # Planner retries for format enforcement
     PLANNER_MAX_RETRIES = 3
+
+    # Maximum consecutive RAG searches any single node can request before
+    # it is forced to produce a real decision.
+    MAX_RAG_PER_NODE = 3
+
+    RAG_NODE_SYSTEM_PROMPT = """You are a Knowledge Retrieval Specialist for a Red Team engagement assistant.
+
+You receive:
+1. A SEARCH QUERY — what the calling node is looking for.
+2. A SEARCH REASON — why the calling node needs this information.
+3. RETRIEVED DOCUMENTS — raw text chunks from the documentation database.
+
+Your task:
+1. Read all retrieved documents carefully.
+2. Based on the SEARCH REASON, identify the most relevant passages.
+3. Return a concise, structured excerpt containing ONLY the information relevant to the query and reason.
+4. Preserve technical details exactly (commands, flags, parameters, CVE numbers, module paths, etc.).
+5. If none of the retrieved documents are relevant, state that clearly.
+
+Output format:
+- One-line summary of what was found.
+- Relevant excerpts with source attribution.
+- Keep total output under 1500 characters.
+
+Do NOT add opinions or analysis — only extract and present what the documents contain."""
 
 config = RAGConfig()
