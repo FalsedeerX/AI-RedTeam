@@ -1,7 +1,3 @@
-Here is a **shorter and cleaner version**:
-
----
-
 # Implant Prototype
 
 This directory contains **stripped-down prototype code** used to verify the implant communication protocol.
