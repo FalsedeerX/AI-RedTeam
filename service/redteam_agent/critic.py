@@ -228,9 +228,13 @@ class CriticPipeline:
         proposed_summary = "\n".join(proposed_parts)
 
         # Retrieve the latest RAG context from message history
+        # Look for both legacy ToolMessage (retrieve_context) and new RAG node results.
         rag_context = ""
         for m in reversed(messages):
             if isinstance(m, ToolMessage) and m.name == "retrieve_context":
+                rag_context = m.content
+                break
+            if isinstance(m, HumanMessage) and "[RAG SEARCH RESULT" in m.content:
                 rag_context = m.content
                 break
 
