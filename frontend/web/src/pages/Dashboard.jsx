@@ -235,7 +235,7 @@ export default function Dashboard() {
                 className="flex-1 font-bold py-3 rounded-lg transition-colors"
                 style={{ background: '#1c2333', border: '1px solid #30363d', color: '#79c0ff' }}
               >
-                ← Return to Project
+                💾 Save & View Report
               </button>
             </div>
           )}

@@ -120,14 +120,14 @@ export default function ProjectWorkspace({ username }) {
 
   // ── Load findings when switching to findings tab ─────────────────────────────
   React.useEffect(() => {
-    if (activeTab === 'findings' && findings.length === 0 && !loadingFindings) {
+    if (activeTab === 'findings' && !loadingFindings) {
       loadFindings();
     }
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load reports when switching to reports tab ───────────────────────────────
   React.useEffect(() => {
-    if (activeTab === 'reports' && reports.length === 0 && !loadingReports) {
+    if (activeTab === 'reports' && !loadingReports) {
       loadReports();
     }
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
