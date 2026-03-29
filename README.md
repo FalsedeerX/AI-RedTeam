@@ -6,6 +6,13 @@ Team S06 – Fall 2025 - Spring 2026
 
 ---
 
+## Key Features
+- Autonomous security auditing and remediation via LLM-generated commands  
+- Custom implant with C2 infrastructure for remote execution and control  
+- RAG-driven command generation for context-aware decision making  
+
+---
+
 ## Contributors
 - **Si Ci Chou (Simon)** – chou170@purdue.edu  
 - **Yu-Kuang Chen (Falsedeer)** - chen5292@purdue.edu
@@ -18,12 +25,6 @@ Team S06 – Fall 2025 - Spring 2026
 ![Contributors](https://img.shields.io/badge/contributors-3-orange)
 
 ---
-
-
-
-
-
-
 
 ## Project Structure
 
