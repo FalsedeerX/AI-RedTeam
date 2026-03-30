@@ -1,0 +1,23 @@
+.flex-grow-2 {
+    flex: 2 1 0;
+}
+
+.flex-grow-3 {
+    flex: 3 1 0;
+}
+
+.flex-grow-7 {
+    flex: 7 1 0;
+}
+
+.flex-grow-3 {
+    flex: 3 1 0;
+}
+
+#agents thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background-color: var(--bs-card-bg, var(--bs-body-bg));
+	padding-top: 1rem;
+}
