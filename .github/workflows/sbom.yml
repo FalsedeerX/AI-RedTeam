@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "develop" ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sbom:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 3. Install Python dependencies
+      # 3. Install backend dependencies
       - name: Install backend deps
         run: |
           pip install -r backend/requirements.txt
@@ -30,7 +33,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       # 5. Install frontend dependencies
       - name: Install frontend deps
@@ -39,18 +42,23 @@ jobs:
           npm install
           cd ..
 
-      # 6. Install Syft
+      # 6. Install Syft (FIXED PATH ISSUE)
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      # 7. Generate SBOM (UNIFIED)
+      # 7. Verify Syft (debug safety)
+      - name: Verify Syft
+        run: syft version
+
+      # 8. Generate unified SBOM
       - name: Generate SBOM
         run: |
           syft . -o cyclonedx-json > SBOM.json
 
-      # 8. Upload SBOM artifact
-      - name: Upload SBOM
+      # 9. Upload SBOM
+      - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
           name: SBOM
