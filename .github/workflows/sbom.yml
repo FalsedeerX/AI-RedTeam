@@ -1,0 +1,57 @@
+name: Generate SBOM
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Install Python dependencies
+      - name: Install backend deps
+        run: |
+          pip install -r backend/requirements.txt
+
+      # 4. Setup Node
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 5. Install frontend dependencies
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm install
+          cd ..
+
+      # 6. Install Syft
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
+
+      # 7. Generate SBOM (UNIFIED)
+      - name: Generate SBOM
+        run: |
+          syft . -o cyclonedx-json > SBOM.json
+
+      # 8. Upload SBOM artifact
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: SBOM
+          path: SBOM.json
