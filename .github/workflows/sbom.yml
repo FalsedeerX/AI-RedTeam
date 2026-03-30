@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
+      # 1. Checkout
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -24,10 +24,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 3. Install backend dependencies
+      # 3. Install backend deps
       - name: Install backend deps
-        run: |
-          pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt
 
       # 4. Setup Node
       - name: Setup Node
@@ -35,30 +34,23 @@ jobs:
         with:
           node-version: '20'
 
-      # 5. Install frontend dependencies
+      # 5. Install frontend deps
       - name: Install frontend deps
         run: |
           cd frontend
           npm install
           cd ..
 
-      # 6. Install Syft (FIXED PATH ISSUE)
-      - name: Install Syft
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      # 6. Generate SBOM (NO manual install needed)
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: SBOM.json
 
-      # 7. Verify Syft (debug safety)
-      - name: Verify Syft
-        run: syft version
-
-      # 8. Generate unified SBOM
-      - name: Generate SBOM
-        run: |
-          syft . -o cyclonedx-json > SBOM.json
-
-      # 9. Upload SBOM
-      - name: Upload SBOM artifact
+      # 7. Upload artifact
+      - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: SBOM
