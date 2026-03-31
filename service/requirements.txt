@@ -8,4 +8,4 @@ python-dotenv==1.2.1
 pdfplumber==0.11.9
 fastmcp==2.14.6
 pymetasploit3==1.0.6
-setuptools==68.1.1
+setuptools==68.1.2
