@@ -8,3 +8,5 @@ python-dotenv
 pdfplumber
 fastmcp
 pymetasploit3
+fastapi
+uvicorn

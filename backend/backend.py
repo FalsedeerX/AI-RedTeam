@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import UsersRouter, ProjectsRouter, TargetsRouter, ScansRouter, ReportsRouter
+from app.api.routes import UsersRouter, ProjectsRouter, TargetsRouter, ScansRouter, ReportsRouter, AgentRouter
 
 
 def initialize_server() -> FastAPI:
@@ -29,6 +29,7 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(TargetsRouter().router)
     app.include_router(ScansRouter().router)
     app.include_router(ReportsRouter().router)
+    app.include_router(AgentRouter().router)
 
 
 # Keep the old name for any code that still calls register_routers directly.
