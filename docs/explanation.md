@@ -80,3 +80,9 @@ Running both a local LLM and an active security scan is hardware-intensive. User
 ### Agent/Backend Integration
 
 The agent currently operates as a semi-autonomous service. Full seamless integration is still being refined.
+
+---
+
+## GenAI Usage Statement
+
+I used GenAI tools to assist in markdown syntax and refining technical terminology. The file were authored by me based on our team's implementation.
