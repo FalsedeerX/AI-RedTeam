@@ -20,14 +20,16 @@ export function renderAgents(state) {
 		// add control button
 		const cell = row.insertCell()
 		const manage = document.createElement("a")
+		cell.className = "d-flex flex-column gap-1"
 		manage.href = `/manage/${agent.agent_id}`
-		manage.className = "btn btn-primary btn-sm me-2"
+		manage.className = "btn btn-primary btn-sm w-100"
+
 		manage.innerText = "Manage"
 		cell.appendChild(manage)
 
 		// add delete button
 		const del = document.createElement("button")
-		del.className = "btn btn-danger btn-sm"
+		del.className = "btn btn-danger btn-sm w-100"
 		del.innerText = "Delete"
 		del.addEventListener("click", async () => {
 			if (!confirm(`Delete agent ${agent.agent_id} ?`)) return

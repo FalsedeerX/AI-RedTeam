@@ -8,12 +8,32 @@ Express Dashboard
 <!-- Main content overwrite -->
 {% block content %}
 
-<div class="d-flex flex-column flex-grow-1 p-2">
-	<!-- Card 1 - Agent management -->
-	{% include "partials/agent-card.html" %}
+<!-- Load CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for("static", filename="css/dashboard.css") }}">
+
+
+<div class="d-flex flex-column flex-grow-1 gap-3 overflow-hidden">
+	<!-- Card 1 - Agent map (upper 40% screen) -->
+	<div class="d-flex flex-grow-2 flex-shrink-0">
+		{% include "partials/agent-map-card.html" %}
+	</div>
+
+	<div class="d-flex flex-grow-3 gap-3 overflow-hidden" style="min-height: 0;">
+		<!-- Card 2 - Agent Table (bottom left 70%) -->
+		<div class="d-flex flex-grow-7 overflow-hidden" style="min-height: 0;">
+			{% include "partials/agent-table-card.html" %}
+		</div>
+
+		<!-- Card 3 - System Logs (bottom right 30%) -->
+		<div class="d-flex flex-grow-3 overflow-hidden" style="min-height: 0; width: 0;">
+			{% include "partials/recent-events-card.html" %}
+		</div>
+	</div>
 </div>
 
 <!-- Load jS script to modify DOM -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="module" src="{{ url_for("static", filename="js/dashboard.js") }}"></script>
 
 {% endblock %}

@@ -1,4 +1,4 @@
-import { loadRegisteredTasks } from "./components/contract-overview-card.js"
+import { loadRegisteredTasks } from "./components/contract-overview.js"
 
 
 // load once
