@@ -233,3 +233,8 @@ Start the analysis process for a configured project.
 
 The system starts the analysis process and redirect user to the web terminal.
 
+---
+
+## GenAI Usage Statement
+
+No AI is used for creating this documenation.
