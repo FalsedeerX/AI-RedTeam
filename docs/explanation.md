@@ -30,7 +30,7 @@ The following diagram illustrates the interaction between our React frontend, th
 
 The AI agent has its own internal graph structure. This is the flow of how the agent makes decisions:
 
-![AI RedTeam Architecture] (./agent_graph_planner.png)
+![AI RedTeam Architecture](./agent_graph_planner.png)
 
 ---
 
