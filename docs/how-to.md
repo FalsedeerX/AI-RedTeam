@@ -95,7 +95,7 @@ Setup the database and schemas from the preconfigured envrionment variables.
 2. Invoke the database setup script
 
 ```bash
-cd scripts/database-setup
+cd scripts/database_setup
 chmod 744 setup.sh
 ./setup.sh
 ```

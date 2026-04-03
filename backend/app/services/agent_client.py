@@ -24,10 +24,15 @@ AGENT_SERVICE_PORT  — Port on the agent container (default 8100).
 """
 
 import os
+from pathlib import Path
 from typing import Optional
 
 import httpx
+from dotenv import load_dotenv
 
+# Load the project-root .env so AGENT_SERVICE_URL is available via os.getenv().
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+load_dotenv(_PROJECT_ROOT / ".env", override=False)
 
 _TIMEOUT = httpx.Timeout(10.0, read=300.0)  # long read timeout for slow LLM ops
 
