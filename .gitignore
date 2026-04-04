@@ -215,3 +215,4 @@ service/redteam_agent/chroma_db/
 
 .cursor/
 
+create_issues.sh
