@@ -285,6 +285,53 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Live Findings List */}
+          {findings.length > 0 && (
+            <div
+              className="rounded-lg p-4"
+              style={{ background: '#1c2333', border: '1px solid #30363d' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold" style={{ color: '#e6edf3' }}>
+                  🎯 Findings ({findings.length})
+                </p>
+                {isActive && (
+                  <span className="text-xs animate-pulse" style={{ color: '#3fb950' }}>● live</span>
+                )}
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {findings.map((f, i) => {
+                  const sev = (f.severity || 'INFO').toUpperCase();
+                  const sevColor = sev === 'CRITICAL' || sev === 'HIGH' ? '#f85149'
+                                 : sev === 'MEDIUM' ? '#d29922'
+                                 : sev === 'LOW' ? '#3fb950'
+                                 : '#7d8590';
+                  const sevBg = sev === 'CRITICAL' || sev === 'HIGH' ? 'rgba(248,81,73,0.08)'
+                              : sev === 'MEDIUM' ? 'rgba(210,153,34,0.08)'
+                              : sev === 'LOW' ? 'rgba(63,185,80,0.08)'
+                              : 'rgba(110,118,129,0.08)';
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 rounded-md px-3 py-2"
+                      style={{ background: sevBg, border: `1px solid ${sevColor}22` }}
+                    >
+                      <span
+                        className="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded"
+                        style={{ color: sevColor, background: `${sevColor}18`, border: `1px solid ${sevColor}44` }}
+                      >
+                        {sev}
+                      </span>
+                      <span className="text-sm" style={{ color: '#c9d1d9' }}>
+                        {f.description || 'No description'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Post-scan actions */}
           {scanStatus === 'completed' && !viewingReport && (
             <div className="flex gap-3 mt-4">
