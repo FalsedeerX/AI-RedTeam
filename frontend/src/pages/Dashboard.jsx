@@ -46,6 +46,9 @@ export default function Dashboard() {
         setPhaseHistory(data.phase_history || []);
         setFindings(data.findings || []);
         setPendingHitl(data.pending_hitl || null);
+        if (data.report_id) {
+          setReportId(data.report_id);
+        }
 
         if (data.status === 'hitl_pending' && data.pending_hitl) {
           setIsModalOpen(true);
@@ -62,6 +65,14 @@ export default function Dashboard() {
 
     return () => clearInterval(pollInterval);
   }, [runId]);
+
+  // Auto-transition to the report view once the run completes and the
+  // backend has returned a persisted report_id.
+  React.useEffect(() => {
+    if (scanStatus === 'completed' && reportId) {
+      setViewingReport(true);
+    }
+  }, [scanStatus, reportId]);
 
   const handleApprove = async () => {
     try {
@@ -335,20 +346,23 @@ export default function Dashboard() {
           {/* Post-scan actions */}
           {scanStatus === 'completed' && !viewingReport && (
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => setViewingReport(true)}
-                className="flex-1 font-bold py-3 rounded-lg transition-opacity hover:opacity-85"
-                style={{ background: '#3fb950', color: '#0d1117' }}
-              >
-                📄 View Full Report
-              </button>
-              <button
-                onClick={handleReturnToWorkspace}
-                className="flex-1 font-bold py-3 rounded-lg transition-colors"
-                style={{ background: '#1c2333', border: '1px solid #30363d', color: '#79c0ff' }}
-              >
-                💾 Save & View Report
-              </button>
+              {reportId ? (
+                <button
+                  onClick={() => setViewingReport(true)}
+                  className="flex-1 font-bold py-3 rounded-lg transition-opacity hover:opacity-85"
+                  style={{ background: '#3fb950', color: '#0d1117' }}
+                >
+                  View Report
+                </button>
+              ) : (
+                <button
+                  onClick={handleReturnToWorkspace}
+                  className="flex-1 font-bold py-3 rounded-lg transition-colors"
+                  style={{ background: '#1c2333', border: '1px solid #30363d', color: '#79c0ff' }}
+                >
+                  Return to Project
+                </button>
+              )}
             </div>
           )}
 
