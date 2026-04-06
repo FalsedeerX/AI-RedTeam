@@ -19,7 +19,7 @@ class RAGConfig:
     # Updated based on demo_graph.py
     EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "bge-m3")
     LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "qwen3:8b")
-    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:5000")
+    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434")
 
     LLM_CONFIG = {
         "model": LLM_MODEL_NAME,
