@@ -208,16 +208,15 @@ export default function ProjectWorkspace({ username }) {
     setScanError('');
 
     const selectedTarget = targets.find(t => String(t.id) === String(selectedTargetId));
-    const targetValues = selectedTarget ? [selectedTarget.value] : targets.map(t => t.value);
+    const targetValue = selectedTarget ? selectedTarget.value : targets[0]?.value;
 
     try {
-      const data = await apiPost('/scans/start', {
+      const data = await apiPost('/agent/start', {
         project_id: projectId,
-        targets: targetValues,
-        scan_type: scanType,
+        target: targetValue,
       });
       navigate(`/projects/${projectId}/runs/${data.run_id}`, {
-        state: { targets: targetValues, scanType, username },
+        state: { targets: [targetValue], scanType, username },
       });
     } catch (err) {
       setScanError(`Failed to start scan: ${err.message}`);

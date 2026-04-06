@@ -4,3 +4,4 @@ from .targets import Targets
 from .runs import Runs
 from .findings import Findings
 from .reports import Reports
+from .agent_runs import AgentRuns

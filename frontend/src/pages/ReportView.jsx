@@ -26,7 +26,7 @@ export default function ReportView({ targets, reportId, runId, onStartNewScan })
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
-    if (!reportId || !runId) {
+    if (!reportId) {
       setError('Report data is unavailable. The scan may not have completed successfully.');
       setLoading(false);
       return;
@@ -34,12 +34,24 @@ export default function ReportView({ targets, reportId, runId, onStartNewScan })
 
     async function fetchData() {
       try {
-        const [reportData, findingsData] = await Promise.all([
-          apiGet(`/reports/${reportId}`),
-          apiGet(`/scans/${runId}/findings`),
-        ]);
+        const reportData = await apiGet(`/reports/${reportId}`);
         setReport(reportData);
-        setFindings(findingsData);
+
+        if (reportData.report_format === 'json') {
+          try {
+            const parsed = JSON.parse(reportData.content);
+            const normalized = (Array.isArray(parsed) ? parsed : []).map(f => ({
+              ...f,
+              severity: (f.severity || '').toLowerCase(),
+            }));
+            setFindings(normalized);
+          } catch {
+            setFindings([]);
+          }
+        } else if (runId) {
+          const findingsData = await apiGet(`/scans/${runId}/findings`);
+          setFindings(findingsData);
+        }
       } catch (err) {
         setError(err.message || 'Failed to load report data.');
       } finally {
@@ -193,8 +205,8 @@ export default function ReportView({ targets, reportId, runId, onStartNewScan })
                     </div>
 
                     <div className="space-y-4">
-                      {grouped[sev].map(finding => (
-                        <FindingCard key={finding.id} finding={finding} cfg={cfg} />
+                      {grouped[sev].map((finding, idx) => (
+                        <FindingCard key={finding.id ?? idx} finding={finding} cfg={cfg} />
                       ))}
                     </div>
                   </div>
@@ -233,8 +245,13 @@ export default function ReportView({ targets, reportId, runId, onStartNewScan })
 }
 
 // Individual finding card — shown within a severity group.
+// Handles both full scan findings (title, content, evidence, confidence,
+// finding_type) and lightweight agent findings (severity + description).
 function FindingCard({ finding, cfg }) {
   const [evidenceOpen, setEvidenceOpen] = React.useState(false);
+
+  const title = finding.title || finding.description || 'Untitled Finding';
+  const body = finding.content || finding.description || '';
 
   return (
     <div className={`border-2 ${cfg.borderColor} rounded-lg p-6 ${cfg.bg}`}>
@@ -242,34 +259,42 @@ function FindingCard({ finding, cfg }) {
         <div className="flex-1">
           {/* Title row */}
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <h4 className={`text-lg font-bold ${cfg.headerColor}`}>{finding.title}</h4>
+            <h4 className={`text-lg font-bold ${cfg.headerColor}`}>{title}</h4>
             <span className={`text-xs font-bold text-white px-2 py-0.5 rounded ${cfg.badgeBg} uppercase`}>
               {finding.severity}
             </span>
-            <span className="text-xs text-gray-500 uppercase tracking-wide border border-gray-300 rounded px-2 py-0.5">
-              {finding.finding_type}
-            </span>
+            {finding.finding_type && (
+              <span className="text-xs text-gray-500 uppercase tracking-wide border border-gray-300 rounded px-2 py-0.5">
+                {finding.finding_type}
+              </span>
+            )}
           </div>
 
           {/* Description */}
-          <p className="text-gray-700 mb-3">{finding.content}</p>
+          <p className="text-gray-700 mb-3">{body}</p>
 
           {/* Confidence */}
-          <p className="text-sm text-gray-500 mb-2">
-            <span className="font-semibold">Confidence:</span> {finding.confidence}%
-          </p>
+          {finding.confidence != null && (
+            <p className="text-sm text-gray-500 mb-2">
+              <span className="font-semibold">Confidence:</span> {finding.confidence}%
+            </p>
+          )}
 
           {/* Evidence — collapsible */}
-          <button
-            onClick={() => setEvidenceOpen(o => !o)}
-            className="text-sm font-semibold text-gray-600 hover:text-gray-900 underline focus:outline-none"
-          >
-            {evidenceOpen ? 'Hide Evidence ▲' : 'Show Evidence ▼'}
-          </button>
-          {evidenceOpen && (
-            <div className="mt-2 bg-gray-900 text-green-400 font-mono text-sm p-3 rounded">
-              {finding.evidence}
-            </div>
+          {finding.evidence && (
+            <>
+              <button
+                onClick={() => setEvidenceOpen(o => !o)}
+                className="text-sm font-semibold text-gray-600 hover:text-gray-900 underline focus:outline-none"
+              >
+                {evidenceOpen ? 'Hide Evidence ▲' : 'Show Evidence ▼'}
+              </button>
+              {evidenceOpen && (
+                <div className="mt-2 bg-gray-900 text-green-400 font-mono text-sm p-3 rounded">
+                  {finding.evidence}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
