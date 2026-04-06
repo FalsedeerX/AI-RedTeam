@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-cd ../backend
+cd ../scripts/proxy
 source .venv/bin/activate
-python backend.py
+python relay.py

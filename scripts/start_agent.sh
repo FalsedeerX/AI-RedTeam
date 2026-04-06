@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-cd ../backend
+
+cd ../service
 source .venv/bin/activate
-python backend.py
+python -m redteam_agent.api
