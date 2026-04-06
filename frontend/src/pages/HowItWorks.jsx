@@ -10,7 +10,7 @@ const STEPS = [
     border: 'rgba(121,192,255,0.2)',
     body: (
       <>
-        A <strong style={{ color: 'var(--rt-text)' }}>Project</strong> is the container for one
+        A <strong style={{ color: 'var(--rt-text)' }}>Project </strong> is the container for one
         engagement — think of it as a named folder for a specific system or client you&apos;re
         assessing. Give it a clear name (e.g. &quot;Juice Shop QA&quot; or &quot;Internal API
         Audit&quot;) so you can track multiple engagements separately. Click{' '}
