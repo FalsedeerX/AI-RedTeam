@@ -27,6 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import get_current_user_id
+from app.core.deployment import enforce_approved_target
 from app.db.broker.agent_runs import AgentRunsBroker
 from app.services.agent_client import agent_client
 
@@ -98,11 +99,16 @@ class AgentRouter:
     ) -> AgentStartResponse:
         """
         Start a new agent run by forwarding the request to the Agent Service.
+
+        Purdue deployment note:
+        Keep the approved-target check here so the live agent entrypoint only
+        accepts the deployment-approved target. Remove or expand this check
+        when broader target support is intentionally re-enabled.
         """
         try:
             result = await agent_client.start_run(
                 project_id=payload.project_id,
-                target=payload.target,
+                target=enforce_approved_target(payload.target),
             )
         except Exception as exc:
             raise HTTPException(

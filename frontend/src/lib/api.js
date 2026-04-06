@@ -24,9 +24,7 @@ function authHeaders() {
 async function extractError(response) {
   try {
     const body = await response.json();
-    // Surface the status code so callers can branch on 409, 401, etc.
-    const msg = body.detail ?? body.message ?? `Request failed: ${response.status}`;
-    return `${response.status} ${msg}`;
+    return body.detail ?? body.message ?? `Request failed: ${response.status}`;
   } catch {
     return `Request failed: ${response.status}`;
   }
