@@ -22,7 +22,9 @@ export default function Dashboard() {
   const [stepCount, setStepCount] = React.useState(0);
   const [phaseHistory, setPhaseHistory] = React.useState([]);
   const [findings, setFindings] = React.useState([]);
+  const [killing, setKilling] = React.useState(false);
   const terminalRef = React.useRef(null);
+  const pollRef = React.useRef(null);
 
   // Auto-scroll terminal to bottom when new logs arrive
   React.useEffect(() => {
@@ -35,7 +37,7 @@ export default function Dashboard() {
   React.useEffect(() => {
     if (!runId) return;
 
-    const pollInterval = setInterval(async () => {
+    pollRef.current = setInterval(async () => {
       try {
         const data = await apiGet(`/agent/${runId}/status`);
 
@@ -55,7 +57,8 @@ export default function Dashboard() {
         }
 
         if (data.status === 'completed' || data.status === 'killed' || data.status === 'error') {
-          clearInterval(pollInterval);
+          clearInterval(pollRef.current);
+          pollRef.current = null;
         }
       } catch (err) {
         console.error('Polling error:', err);
@@ -63,7 +66,10 @@ export default function Dashboard() {
       }
     }, 1000);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
   }, [runId]);
 
   // Auto-transition to the report view once the run completes and the
@@ -103,19 +109,27 @@ export default function Dashboard() {
   };
 
   const handleKillSwitch = async () => {
+    if (killing) return;
+    setKilling(true);
     try {
       const data = await apiPost(`/agent/${runId}/kill`);
       if (data.success) {
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
         setScanStatus('killed');
         setIsModalOpen(false);
         setPendingHitl(null);
         setError('⚠️ Session Terminated by Emergency Switch');
       } else {
         setError('Failed to activate kill switch');
+        setKilling(false);
       }
     } catch (err) {
       console.error('Kill switch error:', err);
       setError('Failed to activate emergency stop');
+      setKilling(false);
     }
   };
 
@@ -164,11 +178,12 @@ export default function Dashboard() {
         {isActive && (
           <button
             onClick={handleKillSwitch}
-            className="absolute top-4 right-4 font-bold py-2 px-4 rounded-lg flex items-center gap-2 border-2 shadow-lg transition-opacity hover:opacity-85"
+            disabled={killing}
+            className="absolute top-4 right-4 font-bold py-2 px-4 rounded-lg flex items-center gap-2 border-2 shadow-lg transition-opacity hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: '#f85149', color: 'white', borderColor: 'rgba(248,81,73,0.6)' }}
           >
             <span className="text-xl">🛑</span>
-            <span>Emergency Stop</span>
+            <span>{killing ? 'Stopping…' : 'Emergency Stop'}</span>
           </button>
         )}
 

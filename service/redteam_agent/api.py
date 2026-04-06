@@ -30,6 +30,7 @@ from langgraph.types import Command
 from .agent import get_agent
 from .run_state import (
     RunState,
+    AgentCancelledError,
     init_run,
     get_current_run,
     add_log,
@@ -269,6 +270,10 @@ def _execute_agent(run_state: RunState, query: str, target: str) -> None:
             "findings": run_state.findings,
         }
         add_log(run_state, "system", "Agent execution completed.")
+
+    except AgentCancelledError:
+        add_log(run_state, "system", "Run terminated by operator.")
+        run_state.status = "killed"
 
     except Exception as exc:
         run_state.status = "error"
