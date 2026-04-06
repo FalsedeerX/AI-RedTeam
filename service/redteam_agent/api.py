@@ -18,6 +18,7 @@ HITL synchronisation is handled via threading.Event inside RunState.
 
 import os
 import uuid
+import logging
 import threading
 import traceback
 
@@ -34,6 +35,8 @@ from .run_state import (
     get_current_run,
     add_log,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -298,6 +301,12 @@ app = FastAPI(
     version="0.1.0"
 )
 
+
+@app.on_event("startup")
+def _startup_cleanup():
+    """Log that the agent service container is ready."""
+    logger.info("Agent Service started — ready to accept runs.")
+
 # POST /start — start a new agent run
 @app.post("/start", response_model=StartRunResponse, status_code=201)
 def start_run(payload: StartRunRequest):
@@ -370,6 +379,7 @@ def kill_run():
 
     run_state.killed = True
     run_state.hitl_event.set()   # unblock if waiting on HITL
+
     return ActionResponse(success=True)
 
 

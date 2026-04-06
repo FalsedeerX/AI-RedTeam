@@ -1,3 +1,4 @@
+import logging
 import re
 import subprocess
 import time
@@ -5,6 +6,8 @@ from langchain.tools import tool
 from pymetasploit3.msfrpc import MsfRpcClient
 from .config import config
 from .vector_store import get_vector_store
+
+logger = logging.getLogger(__name__)
 
 # MSF global / payload settings that are valid msfconsole commands but are
 # NOT listed in module.options (they belong to the payload or the console
@@ -97,14 +100,8 @@ def execute_nmap_scan(command: str):
             return "Error: Command must start with 'nmap'."
 
     try:
-        # Run the command
-        # shell=True allows passing the full string on Windows
         result = subprocess.run(
-            command, 
-            shell=True, 
-            capture_output=True, 
-            text=True, 
-            timeout=300 # 5 minutes timeout
+            command, shell=True, capture_output=True, text=True, timeout=300,
         )
         # Combine stdout and stderr
         full_output = result.stdout + "\n" + result.stderr

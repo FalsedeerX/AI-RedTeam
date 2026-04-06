@@ -1,0 +1,42 @@
+# =============================================================================
+# docker-compose.sandbox.yml — Build & test the redteam-agent image
+# =============================================================================
+# Usage:
+#   docker compose -f docker-compose.sandbox.yml build   # build image
+#   docker compose -f docker-compose.sandbox.yml up -d   # (optional) test run
+#   docker compose -f docker-compose.sandbox.yml down     # cleanup
+#
+# In production, the Backend creates / destroys agent containers at runtime
+# via the Docker API (backend/app/services/docker_manager.py).
+# This compose file is only needed for building the image and manual testing.
+# =============================================================================
+
+services:
+  # ── Agent container image builder ─────────────────────────────────────
+  agent:
+    build:
+      context: .                              # repo root
+      dockerfile: service/redteam_agent/sandbox/Dockerfile
+    image: redteam-agent:latest
+    container_name: redteam-agent-test
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8100:8100"
+    environment:
+      - TARGET_IP=${TARGET_IP:-127.0.0.1}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
+      - DOCKER_GATEWAY_IP=${DOCKER_GATEWAY_IP:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:11434}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-qwen3:8b}
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME:-bge-m3}
+      - MSF_RPC_HOST=${MSF_RPC_HOST:-host.docker.internal}
+      - MSF_RPC_PORT=${MSF_RPC_PORT:-55552}
+      - MSF_RPC_USER=${MSF_RPC_USER:-msf}
+      - MSF_RPC_PASS=${MSF_RPC_PASS:-msf123}
+      - MSF_RPC_SSL=${MSF_RPC_SSL:-false}
+    mem_limit: 2g
+    cpus: 1.5

@@ -48,9 +48,21 @@ class AgentClient:
     def _get_url(self, project_id: str) -> str:
         """Resolve the Agent Service URL for a given project.
 
-        Dev mode  : AGENT_SERVICE_URL=http://localhost:8100  (ignores project_id)
-        Prod mode : http://agent-{project_id}:8100
+        Priority:
+        1. Docker container URL (if a container is running for this project)
+        2. AGENT_SERVICE_URL override (dev mode, ignores project_id)
+        3. DNS-based hostname template (prod Kubernetes / Compose mode)
         """
+        # Check for an active Docker container first
+        try:
+            from app.services.docker_manager import get_container_url, DOCKER_ENABLED
+            if DOCKER_ENABLED:
+                container_url = get_container_url(project_id)
+                if container_url:
+                    return container_url
+        except ImportError:
+            pass
+
         if self._override_url:
             return self._override_url.rstrip("/")
         return f"{self._base}-{project_id}:{self._port}"
