@@ -66,8 +66,7 @@ export default function ProjectWorkspace({ username }) {
 
   // Scan tab state
   const [selectedTargetId, setSelectedTargetId] = React.useState('');
-  const [scanMode, setScanMode] = React.useState('passive');
-  const [scanType, setScanType] = React.useState('web');
+  const scanType = 'web';
   const [authorization, setAuthorization] = React.useState('');
   const [scanLaunching, setScanLaunching] = React.useState(false);
   const [scanError, setScanError] = React.useState('');
@@ -379,7 +378,7 @@ export default function ProjectWorkspace({ username }) {
                 <div>
                   <h2 className="text-sm font-semibold" style={{ color: 'var(--rt-text)' }}>Targets</h2>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--rt-muted)' }}>
-                    URLs, IPs, or CIDR ranges in scope for this project
+                    Deployment is locked to the single approved target: http://falsedeer.com/
                   </p>
                 </div>
                 <button
@@ -427,7 +426,7 @@ export default function ProjectWorkspace({ username }) {
                       value={newTargetValue}
                       onChange={e => setNewTargetValue(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAddTarget()}
-                      placeholder="e.g. https://example.com or 192.168.1.1"
+                      placeholder="http://falsedeer.com/"
                       className="flex-1 px-3 py-2 rounded text-xs font-mono outline-none"
                       style={{ background: 'var(--rt-surface)', border: '1px solid var(--rt-border)', color: 'var(--rt-text)' }}
                       onFocus={e => { e.target.style.borderColor = 'var(--rt-sky)'; }}
@@ -492,38 +491,17 @@ export default function ProjectWorkspace({ username }) {
                       ))}
                     </select>
 
-                    {/* Scan mode */}
-                    <label className="block text-xs font-medium mb-2" style={{ color: 'var(--rt-muted)' }}>Scan Mode</label>
-                    <div className="grid grid-cols-2 gap-2 mb-5">
-                      <ModeOption
-                        selected={scanMode === 'passive'}
-                        onClick={() => setScanMode('passive')}
-                        label="🔍 Passive"
-                        sub="Non-intrusive · default"
-                      />
-                      <ModeOption
-                        selected={scanMode === 'active'}
-                        onClick={() => setScanMode('active')}
-                        label="⚡ Active"
-                        sub="May trigger alerts"
-                      />
-                    </div>
-
-                    {/* Scan type */}
-                    <label className="block text-xs font-medium mb-2" style={{ color: 'var(--rt-muted)' }}>Scan Type</label>
-                    <div className="grid grid-cols-2 gap-2 mb-5">
-                      <ModeOption
-                        selected={scanType === 'web'}
-                        onClick={() => setScanType('web')}
-                        label="🌐 Web (URL)"
-                        sub="Nikto / HTTP"
-                      />
-                      <ModeOption
-                        selected={scanType === 'network'}
-                        onClick={() => setScanType('network')}
-                        label="🖥 Network (IP)"
-                        sub="nmap"
-                      />
+                    <div
+                      className="rounded-lg p-3 mb-5"
+                      style={{ background: 'rgba(121,192,255,0.08)', border: '1px solid rgba(121,192,255,0.22)' }}
+                    >
+                      <p className="text-xs font-semibold mb-1" style={{ color: 'var(--rt-sky)' }}>
+                        Automated Penetration Test
+                      </p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--rt-muted)' }}>
+                        Target scope is limited. Active reconnaissance and exploitation are restricted exclusively to
+                        {' '}<span style={{ color: 'var(--rt-text)', fontFamily: 'monospace' }}>http://falsedeer.com/</span>.
+                      </p>
                     </div>
 
                     {/* Auth gate */}
@@ -592,7 +570,7 @@ export default function ProjectWorkspace({ username }) {
                 <div className="py-16 text-center" style={{ border: '1px dashed var(--rt-border)', borderRadius: '8px' }}>
                   <p className="text-3xl mb-3 opacity-20">🔍</p>
                   <p className="text-sm font-medium mb-1" style={{ color: 'var(--rt-muted)' }}>No findings yet</p>
-                  <p className="text-xs mb-5" style={{ color: 'var(--rt-dim)' }}>Run a scan to discover vulnerabilities in your targets.</p>
+                  <p className="text-xs mb-5" style={{ color: 'var(--rt-dim)' }}>Run the approved assessment to discover vulnerabilities.</p>
                   <button
                     onClick={() => setActiveTab('scan')}
                     className="px-4 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-85"
@@ -853,24 +831,6 @@ function TargetRow({ target, onScan, onRemove }) {
         </button>
       </div>
     </div>
-  );
-}
-
-function ModeOption({ selected, onClick, label, sub }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-lg px-3 py-3 text-left transition-colors"
-      style={{
-        background: selected ? 'rgba(121,192,255,0.08)' : 'var(--rt-surface2)',
-        border: `1px solid ${selected ? 'var(--rt-sky)' : 'var(--rt-border)'}`,
-      }}
-    >
-      <span className="block text-xs font-semibold" style={{ color: selected ? 'var(--rt-sky)' : 'var(--rt-muted)' }}>
-        {label}
-      </span>
-      <span className="block font-mono text-xs mt-0.5" style={{ color: 'var(--rt-dim)' }}>{sub}</span>
-    </button>
   );
 }
 

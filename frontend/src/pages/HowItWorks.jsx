@@ -10,7 +10,7 @@ const STEPS = [
     border: 'rgba(121,192,255,0.2)',
     body: (
       <>
-        A <strong style={{ color: 'var(--rt-text)' }}>Project</strong> is the container for one
+        A <strong style={{ color: 'var(--rt-text)' }}>Project </strong> is the container for one
         engagement — think of it as a named folder for a specific system or client you&apos;re
         assessing. Give it a clear name (e.g. &quot;Juice Shop QA&quot; or &quot;Internal API
         Audit&quot;) so you can track multiple engagements separately. Click{' '}
@@ -39,20 +39,17 @@ const STEPS = [
   },
   {
     num: '03',
-    title: 'Configure & Launch a Scan',
+    title: 'Launch a Scan',
     color: 'var(--rt-amber)',
     bg: 'rgba(210,153,34,0.08)',
     border: 'rgba(210,153,34,0.2)',
     body: (
       <>
-        Go to the <strong style={{ color: 'var(--rt-text)' }}>Scan</strong> tab, choose a target,
-        and pick a scan mode.{' '}
-        <strong style={{ color: 'var(--rt-text)' }}>Passive mode</strong> (default) is
-        non-intrusive — it observes and fingerprints without sending attack payloads, safe for
-        production. <strong style={{ color: 'var(--rt-text)' }}>Active mode</strong> sends test
-        payloads and may trigger security alerts — use it only on isolated test environments. Type{' '}
+        Go to the <strong style={{ color: 'var(--rt-text)' }}>Scan</strong> tab and choose a
+        target. The AI agent will begin a structured assessment — starting with reconnaissance,
+        moving through enumeration, and escalating only as findings warrant. Type{' '}
         <strong style={{ color: 'var(--rt-ember)' }}>I AUTHORIZE</strong> to confirm you have
-        permission, then hit Start Scan.
+        permission, then hit <strong style={{ color: 'var(--rt-text)' }}>Start Scan</strong>.
       </>
     ),
   },
@@ -82,13 +79,11 @@ const STEPS = [
     border: 'rgba(63,185,80,0.2)',
     body: (
       <>
-        After the scan completes, navigate to the{' '}
-        <strong style={{ color: 'var(--rt-text)' }}>Findings</strong> tab to review all discovered
-        vulnerabilities ranked by severity (Critical → Low). Each finding includes a description,
-        affected target, CVE reference where available, and AI-generated remediation guidance. When
-        ready, go to <strong style={{ color: 'var(--rt-text)' }}>Reports</strong> to export a
-        structured report as <strong style={{ color: 'var(--rt-sky)' }}>JSON</strong> or{' '}
-        <strong style={{ color: 'var(--rt-sky)' }}>PDF</strong>.
+        When the scan completes, a report is automatically generated and displayed on screen. You
+        can review findings by severity and export the full report as a JSON file. After exiting,
+        your report and findings are saved — find them anytime under the{' '}
+        <strong style={{ color: 'var(--rt-text)' }}>Reports</strong> and{' '}
+        <strong style={{ color: 'var(--rt-text)' }}>Findings</strong> tabs in your project.
       </>
     ),
   },
@@ -97,13 +92,13 @@ const STEPS = [
 const CONCEPTS = [
   {
     icon: '🧠',
-    title: 'Local LLM — No Cloud',
-    body: 'All AI inference runs locally via Ollama (qwen3:8b). Your targets, scan data, and findings never leave your machine.',
+    title: 'No Third-Party AI Providers',
+    body: 'AI inference runs on our private server via Ollama (qwen3:8b) — not through OpenAI, Anthropic, or any other cloud AI provider. Your targets, scan data, and findings are never exposed to a third-party model provider.',
   },
   {
     icon: '📚',
     title: 'RAG Pipeline',
-    body: 'The AI retrieves context from a local vector database (ChromaDB) seeded with security playbooks, OWASP docs, and prior scan outputs.',
+    body: 'The AI retrieves context from a vector database (ChromaDB) seeded with security playbooks, OWASP docs, and prior scan outputs to inform its reasoning.',
   },
   {
     icon: '🔒',
@@ -119,12 +114,8 @@ const CONCEPTS = [
 
 const FAQS = [
   {
-    q: "What's the difference between Passive and Active mode?",
-    a: "Passive mode observes and fingerprints without sending attack payloads — it's safe for production. Active mode sends real test payloads (e.g. SQL injection strings, fuzzing inputs) that may cause errors or trigger security alerts. Always use Active mode only on isolated test environments like DVWA or Juice Shop.",
-  },
-  {
     q: 'Can I run multiple scans at the same time?',
-    a: 'Not currently. AI RedTeam is designed for single, controlled scan sessions. Running concurrent scans on the same machine would degrade LLM performance and make HITL gate management difficult. Parallel scan support is a planned future feature.',
+    a: 'Not currently. AI RedTeam is designed for single, controlled scan sessions. Running concurrent scans would degrade agent performance and make HITL gate management difficult. Parallel scan support is planned for a future release.',
   },
   {
     q: 'Does the AI ever take action without my approval?',
@@ -132,11 +123,11 @@ const FAQS = [
   },
   {
     q: 'What scanning tools does it use under the hood?',
-    a: 'Currently: nmap for network/port scanning and Nikto for web server vulnerability scanning. SQLMap support is planned. All tools run as subprocesses and their output is parsed and fed back to the AI reasoning layer.',
+    a: 'Currently: nmap for network and port scanning, and Metasploit for vulnerability verification. All tools run as subprocesses and their output is parsed and fed back to the AI reasoning layer.',
   },
   {
     q: 'Where is my data stored?',
-    a: 'All data — projects, targets, findings, reports, and scan logs — is stored in a local PostgreSQL database on your machine. LLM inference runs via Ollama locally. No data is transmitted to external servers.',
+    a: 'Your projects, targets, findings, and reports are stored in a PostgreSQL database on our private server. AI inference also runs on our server — not through any third-party cloud AI provider. No scan data is shared with external services.',
   },
 ];
 
@@ -191,7 +182,7 @@ export default function HowItWorks({ onComplete }) {
             <p className="text-sm leading-relaxed" style={{ color: 'var(--rt-muted)' }}>
               AI RedTeam lets you run professional-grade security assessments against{' '}
               <strong style={{ color: 'var(--rt-text)' }}>systems you own or have explicit permission to test</strong>.
-              It combines a locally-hosted AI model (no data leaves your machine) with open-source
+              It combines an AI model hosted on our private server — no third-party cloud AI providers involved — with open-source
               scanning tools and a human-in-the-loop approval system to keep you in control at every step.
             </p>
           </div>

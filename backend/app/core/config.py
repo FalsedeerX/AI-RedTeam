@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     DB_RUNTIME_PASSWORD: str
     DB_MIGRATE_USER: str
     DB_MIGRATE_PASSWORD: str
+    PURDUE_ALLOWED_EMAILS: str = ""
+    APPROVED_TARGET_URL: str = "http://falsedeer.com/"
 
     @property
     def DB_OWNER_URL(self) -> str:
@@ -39,6 +41,10 @@ class Settings(BaseSettings):
                 f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         ) 
 
+    @property
+    def purdue_allowed_emails(self) -> list[str]:
+        return [email.strip() for email in self.PURDUE_ALLOWED_EMAILS.split(",") if email.strip()]
+
 
     class Config:
         env_file = ENV_FILE
@@ -52,4 +58,3 @@ settings = Settings()
 
 if __name__ == "__main__":
     pass
-

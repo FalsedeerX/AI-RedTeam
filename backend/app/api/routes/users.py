@@ -2,6 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from app.schema.users import UserCreate, UserAuth, UserInfo, UserIdentity
 from app.api.deps import get_current_user_id
+from app.core.deployment import enforce_purdue_email
 from app.core.security import hash_password, verify_password
 from app.db.broker import UsersBroker
 
@@ -20,10 +21,12 @@ class UsersRouter:
 
     def register(self, payload: UserCreate):
         """ Registering a new user in the database """
-        exists = self.broker.get_user_by_email(payload.email)
-        if exists: raise HTTPException(status_code=409, detail="Email already registered")
+        normalized_email = enforce_purdue_email(payload.email)
+        exists = self.broker.get_user_by_email(normalized_email)
+        if exists:
+            raise HTTPException(status_code=409, detail="Error: An account with this email already exists.")
         user_info = {
-            "email": payload.email,
+            "email": normalized_email,
             "hashed_password": hash_password(payload.password.get_secret_value())
         }
         user_entry = self.broker.create(user_info)
@@ -34,12 +37,14 @@ class UsersRouter:
         For user login, the returning user UUID will need to be injected in the frontend as "X-User-Id".
         Need to add real session token based solution to replace this in the future.
         """
-        user_creds = self.broker.get_credential_by_email(payload.email)
-        if not user_creds: raise HTTPException(status_code=401, detail="Account doesn't exist")
+        normalized_email = enforce_purdue_email(payload.email)
+        user_creds = self.broker.get_credential_by_email(normalized_email)
+        if not user_creds:
+            raise HTTPException(status_code=401, detail="Error: No account was found for this email.")
 
         user_id, user_passwd = user_creds
         if not verify_password(payload.password.get_secret_value(), user_passwd): #change is made so that we dont try and compare two hashes of the same password
-            raise HTTPException(status_code=401, detail="Incorrect login credentials")
+            raise HTTPException(status_code=401, detail="Error: The password you entered is incorrect.")
         return UserIdentity(user_id=user_id)
 
     def get_profile(self, user_id: UUID = Depends(get_current_user_id)):

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.schema.targets import TargetCreate, TargetDetail, TargetPatch
 from app.domain.target import TargetType
 from app.api.deps import get_current_user_id
+from app.core.deployment import enforce_approved_target
 from app.db.broker import TargetsBroker
 from app.db.models import Targets
 
@@ -64,10 +65,11 @@ class TargetsRouter:
         Create a new target for the project in the URL path.
         target_type is inferred from the value if not supplied by the caller.
         """
-        resolved_type = payload.target_type or infer_target_type(payload.value)
+        approved_value = enforce_approved_target(payload.value)
+        resolved_type = payload.target_type or infer_target_type(approved_value)
         data = {
             "project_id": project_id,
-            "value": payload.value,
+            "value": approved_value,
             "label": payload.label,
             "target_type": resolved_type,
         }
@@ -104,6 +106,9 @@ class TargetsRouter:
         for key, value in data.items():
             if value is None and key != "label":
                 raise HTTPException(status_code=400, detail=f"{key} can't be null")
+        if "value" in data:
+            data["value"] = enforce_approved_target(data["value"])
+            data["target_type"] = TargetType.URL
 
         patched_entry = self.broker.apply(target_id, data)
         if not patched_entry:
