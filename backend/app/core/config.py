@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     DB_MIGRATE_USER: str
     DB_MIGRATE_PASSWORD: str
     PURDUE_ALLOWED_EMAILS: str = ""
-    APPROVED_TARGET_URL: str = "http://falsedeer.com/"
+    APPROVED_TARGET_URL: str = ""
 
     @property
     def DB_OWNER_URL(self) -> str:
