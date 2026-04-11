@@ -31,8 +31,8 @@ export default function LoginPage({ onBack, onSuccess, onGoRegister }) {
       const data = await apiPost('/users/auth', { email, password });
       const username = email.split('@')[0];
       onSuccess(username, email, data.user_id);
-    } catch {
-      setError("That email or password doesn't match our records.");
+    } catch (err) {
+      setError(err.message || 'Could not connect to the server.');
     } finally {
       setLoading(false);
     }
@@ -45,14 +45,14 @@ export default function LoginPage({ onBack, onSuccess, onGoRegister }) {
         <Logo />
 
         <h1 style={S.h1}>Welcome back</h1>
-        <p style={S.sub}>Log in to your account to continue.</p>
+        <p style={S.sub}>Log in with your approved Purdue student email to continue.</p>
 
         <ErrorBox message={error} />
 
         <Field
           label="Email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="you@purdue.edu"
           value={email}
           onChange={e => setEmail(e.target.value)}
           autoComplete="email"
@@ -70,6 +70,10 @@ export default function LoginPage({ onBack, onSuccess, onGoRegister }) {
         <PrimaryButton onClick={submit} disabled={loading}>
           {loading ? 'Signing in…' : 'Log in →'}
         </PrimaryButton>
+
+        <p style={{ textAlign: 'center', fontSize: 12.5, color: C.muted, marginTop: 14, lineHeight: 1.5 }}>
+          Purdue deployment access is limited to approved ECE 49595 student emails.
+        </p>
 
         <p style={{ textAlign: 'center', fontSize: 13.5, color: C.muted, marginTop: 20 }}>
           Don&apos;t have an account?{' '}

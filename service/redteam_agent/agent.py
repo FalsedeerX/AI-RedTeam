@@ -9,6 +9,7 @@ from langgraph.types import interrupt
 from .config import config
 from .critic import CriticPipeline
 from .rag_node import RAGNode
+from .run_state import check_killed
 from .tools import execute_nmap_scan, execute_msf_module, search_msf_modules
 
 VALID_PHASES = ("recon", "enumeration", "exploitation", "complete")
@@ -75,6 +76,7 @@ class RedTeamAgent:
         """
         phase_match, directive_match = None, None
         for _ in range(config.PLANNER_MAX_RETRIES):
+            check_killed()
             raw_response = self.planner_model.invoke(
                 [SystemMessage(content=config.PLANNER_SYSTEM_PROMPT)]
                 + state["messages"]
@@ -148,6 +150,7 @@ class RedTeamAgent:
         decides HOW to accomplish it — strategy is left to the Planner.
         May request a RAG search first by outputting RAG_SEARCH + RAG_REASON.
         """
+        check_killed()
         response = self.tactician_model.invoke(
             [SystemMessage(content=config.TACTICIAN_SYSTEM_PROMPT)]
             + state["messages"]
@@ -185,6 +188,7 @@ class RedTeamAgent:
             return {"messages": []}
 
         for tool_call in tc_message.tool_calls:
+            check_killed()
             tool = self.tools_by_name.get(tool_call["name"])
             if not tool:
                 continue  # skip unknown tools (e.g. leftover retrieve_context)
@@ -296,6 +300,7 @@ class RedTeamAgent:
             ))]}
 
         # --- Stage 3: LLM review ---
+        check_killed()
         issues = []
         for tc in action_calls:
             result = self.critic.stage_llm_review([tc], state["messages"])
@@ -397,6 +402,7 @@ class RedTeamAgent:
                 + "\n---\n".join(prior_rag)
             )
 
+        check_killed()
         analyst_response = self.analyst_model.invoke([
             SystemMessage(content=config.ANALYST_SYSTEM_PROMPT),
             HumanMessage(content="\n\n".join(prompt_parts))

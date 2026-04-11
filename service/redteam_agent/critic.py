@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langgraph.types import interrupt
 
 from .config import config
+from .run_state import check_killed
 
 
 def _strip_think_tags(text: str) -> str:
@@ -238,6 +239,7 @@ class CriticPipeline:
                 rag_context = m.content
                 break
 
+        check_killed()
         critic_response = self.critic_model.invoke([
             SystemMessage(content=config.CRITIC_SYSTEM_PROMPT),
             HumanMessage(content=(

@@ -12,6 +12,7 @@ import re
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from .config import config
+from .run_state import check_killed
 from .vector_store import get_vector_store
 
 
@@ -73,6 +74,7 @@ class RAGNode:
             f"RETRIEVED DOCUMENTS:\n{raw_context}"
         )
 
+        check_killed()
         response = self.llm.invoke([
             SystemMessage(content=config.RAG_NODE_SYSTEM_PROMPT),
             HumanMessage(content=prompt),

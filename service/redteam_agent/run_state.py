@@ -15,6 +15,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
+class AgentCancelledError(Exception):
+    """Raised when the operator activates the kill switch."""
+
+
 @dataclass
 class RunState:
     """Mutable state container for the single agent run."""
@@ -74,6 +78,17 @@ def reset_run() -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def check_killed() -> None:
+    """Raise ``AgentCancelledError`` if the operator has activated the kill switch.
+
+    Safe to call from anywhere (tools, nodes, stream loop) — reads the
+    module-global ``_current_run`` so callers don't need a ``RunState`` reference.
+    """
+    run = get_current_run()
+    if run and run.killed:
+        raise AgentCancelledError("Run terminated by operator.")
+
 
 def add_log(state: RunState, node: str, message: str, **extra) -> None:
     """Append a structured log entry to the run state."""

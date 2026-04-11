@@ -61,14 +61,14 @@ export default function RegisterPage({ onBack, onSuccess, onGoLogin }) {
         <StepDots total={3} current={0} />
 
         <h1 style={S.h1}>Create your account</h1>
-        <p style={S.sub}>Set up your credentials to get started.</p>
+        <p style={S.sub}>Use your approved Purdue student email to create an account.</p>
 
         <ErrorBox message={error} />
 
         <Field
           label="Email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="you@purdue.edu"
           value={email}
           onChange={e => setEmail(e.target.value)}
           autoComplete="email"
@@ -94,6 +94,10 @@ export default function RegisterPage({ onBack, onSuccess, onGoLogin }) {
         <PrimaryButton onClick={submit} disabled={loading}>
           {loading ? 'Creating account…' : 'Continue →'}
         </PrimaryButton>
+
+        <p style={{ textAlign: 'center', fontSize: 12.5, color: C.muted, marginTop: 14, lineHeight: 1.5 }}>
+          Temporary access is restricted to approved ECE 49595 Purdue email addresses.
+        </p>
 
         <p style={{ textAlign: 'center', fontSize: 13.5, color: C.muted, marginTop: 20 }}>
           Already have an account?{' '}

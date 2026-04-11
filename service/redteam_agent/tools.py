@@ -5,6 +5,7 @@ import time
 from langchain.tools import tool
 from pymetasploit3.msfrpc import MsfRpcClient
 from .config import config
+from .run_state import check_killed, AgentCancelledError
 from .vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
@@ -99,22 +100,51 @@ def execute_nmap_scan(command: str):
     if not command.strip().lower().startswith("nmap"):
             return "Error: Command must start with 'nmap'."
 
+    _NMAP_TIMEOUT = 300
+    _POLL_INTERVAL = 1
+
     try:
-        result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, timeout=300,
+        check_killed()
+
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
-        # Combine stdout and stderr
-        full_output = result.stdout + "\n" + result.stderr
-        # Strip fingerprint hex dumps and submission notices to save tokens
+
+        elapsed = 0
+        while proc.poll() is None:
+            time.sleep(_POLL_INTERVAL)
+            elapsed += _POLL_INTERVAL
+
+            try:
+                check_killed()
+            except AgentCancelledError:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                raise
+
+            if elapsed >= _NMAP_TIMEOUT:
+                proc.kill()
+                proc.wait()
+                return "Error: Nmap scan timed out (limit: 300s)."
+
+        stdout, stderr = proc.communicate()
+        full_output = stdout + "\n" + stderr
         full_output = _strip_nmap_noise(full_output)
         full_output = _truncate_output(full_output)
-        
-        if result.returncode != 0:
-            return f"Nmap execution failed (Exit Code {result.returncode}):\n{full_output}"
+
+        if proc.returncode != 0:
+            return f"Nmap execution failed (Exit Code {proc.returncode}):\n{full_output}"
         return f"Scan Execution Successful:\n{full_output}"
-        
-    except subprocess.TimeoutExpired:
-        return "Error: Nmap scan timed out (limit: 300s)."
+
+    except AgentCancelledError:
+        raise
     except Exception as e:
         return f"System Error executing nmap: {str(e)}"
 
@@ -177,6 +207,8 @@ def execute_msf_module(module_type: str, module_name: str, options: dict, payloa
                  Only required for exploit modules. Leave empty for auxiliary modules.
     """
     try:
+        check_killed()
+
         if module_name.startswith(f"{module_type}/"):
             module_name = module_name[len(module_type) + 1:]
 
@@ -309,13 +341,22 @@ def execute_msf_module(module_type: str, module_name: str, options: dict, payloa
         while elapsed < max_wait:
             time.sleep(poll_interval)
             elapsed += poll_interval
+
+            try:
+                check_killed()
+            except AgentCancelledError:
+                try:
+                    console.destroy()
+                except Exception:
+                    pass
+                raise
+
             res = console.read()
             if res["data"]:
                 output_parts.append(res["data"])
             if res["busy"] is False:
                 break
         else:
-            # Timed-out — still collect whatever we have
             output_parts.append("\n[WARNING] Module execution timed out (120 s).")
 
         # --- 6. Destroy the console to free resources ---
@@ -353,6 +394,8 @@ def execute_msf_module(module_type: str, module_name: str, options: dict, payloa
 
         return f"Metasploit Output:\n{full_output}{session_info}"
 
+    except AgentCancelledError:
+        raise
     except Exception as e:
         return (
             f"System Error executing Metasploit: {str(e)}\n"
