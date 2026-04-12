@@ -1,3 +1,4 @@
+import logging
 import re
 import subprocess
 import time
@@ -6,6 +7,8 @@ from pymetasploit3.msfrpc import MsfRpcClient
 from .config import config
 from .run_state import check_killed, AgentCancelledError
 from .vector_store import get_vector_store
+
+logger = logging.getLogger(__name__)
 
 # MSF global / payload settings that are valid msfconsole commands but are
 # NOT listed in module.options (they belong to the payload or the console

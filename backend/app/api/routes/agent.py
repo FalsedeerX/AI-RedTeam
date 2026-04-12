@@ -30,6 +30,11 @@ from app.api.deps import get_current_user_id
 from app.core.deployment import enforce_approved_target
 from app.db.broker.agent_runs import AgentRunsBroker
 from app.services.agent_client import agent_client
+from app.services.docker_manager import (
+    DOCKER_ENABLED,
+    create_agent_container,
+    destroy_agent_container,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -98,19 +103,42 @@ class AgentRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> AgentStartResponse:
         """
-        Start a new agent run by forwarding the request to the Agent Service.
+        Start a new agent run.
 
-        Purdue deployment note:
-        Keep the approved-target check here so the live agent entrypoint only
-        accepts the deployment-approved target. Remove or expand this check
-        when broader target support is intentionally re-enabled.
+        When Docker sandboxing is enabled, a dedicated container is created
+        for the project first.  The agent service inside the container
+        receives the start command via HTTP.
         """
+        # ── Docker container provisioning ────────────────────────────────
+        if DOCKER_ENABLED:
+            try:
+                container_url = create_agent_container(
+                    project_id=payload.project_id,
+                    target_ip=payload.target,
+                )
+                logger.info(
+                    "Docker container ready for project %s at %s",
+                    payload.project_id, container_url,
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Failed to create agent container: {exc}",
+                )
+
+        # ── Forward start request to the agent service ───────────────────
         try:
             result = await agent_client.start_run(
                 project_id=payload.project_id,
                 target=enforce_approved_target(payload.target),
             )
         except Exception as exc:
+            # If container creation succeeded but agent call failed, clean up
+            if DOCKER_ENABLED:
+                try:
+                    destroy_agent_container(payload.project_id)
+                except Exception:
+                    pass
             raise HTTPException(
                 status_code=502,
                 detail=f"Agent Service unreachable: {exc}",
@@ -154,6 +182,14 @@ class AgentRouter:
         )
         if report_id is not None:
             data["report_id"] = str(report_id)
+
+        # ── Auto-destroy container when run is terminal ──────────────────
+        if DOCKER_ENABLED and data.get("status") in ("completed", "error", "killed"):
+            try:
+                destroy_agent_container(project_id)
+                logger.info("Destroyed container for project %s (run %s)", project_id, run_id)
+            except Exception as exc:
+                logger.warning("Failed to destroy container for project %s: %s", project_id, exc)
 
         return AgentStatusResponse(**data)
 
@@ -204,7 +240,7 @@ class AgentRouter:
         run_id: str,
         user_id: UUID = Depends(get_current_user_id),
     ) -> AgentActionResponse:
-        """Emergency stop — terminates the agent run."""
+        """Emergency stop — terminates the agent run and destroys the container."""
         agent_run = self._agent_runs_broker.get(run_id)
         if not agent_run:
             raise HTTPException(status_code=404, detail="Run not found")
@@ -217,6 +253,14 @@ class AgentRouter:
                 status_code=502,
                 detail=f"Agent Service unreachable: {exc}",
             )
+
+        # Destroy the container immediately on kill
+        if DOCKER_ENABLED:
+            try:
+                destroy_agent_container(project_id)
+                logger.info("Destroyed container for project %s (emergency kill)", project_id)
+            except Exception as exc:
+                logger.warning("Kill-path container teardown error for %s: %s", project_id, exc)
 
         return AgentActionResponse(success=data.get("success", False))
 

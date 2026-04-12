@@ -20,7 +20,21 @@ DB_RUNTIME_PASSWORD=
 DB_MIGRATE_USER=airedteam_migrate
 DB_MIGRATE_PASSWORD=
 
+AGENT_SERVICE_URL=http://localhost:8100
+
+DOCKER_SANDBOX_ENABLED=true
+
 # <<<<<<<<<<<<<<< Frontend Configuration >>>>>>>>>>>>>>>
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
-
+# <<<<<<<<<<<<<<< Docker Sandbox Configuration >>>>>>>>>>>>>>>
+# Set to "true" to run each agent scan inside an isolated Docker container.
+# When enabled, the Backend creates a per-project Docker container running
+# the full agent service (LangGraph + tools) with restricted networking.
+DOCKER_SANDBOX_ENABLED=false
+DOCKER_SANDBOX_IMAGE=redteam-agent:latest
+DOCKER_MEM_LIMIT=2g
+DOCKER_CPU_QUOTA=150000
+# Additional IPs the container is allowed to reach (comma-separated).
+# Auto-detected for Ollama and MSF; add extras here if needed.
+DOCKER_ALLOWED_HOSTS=
