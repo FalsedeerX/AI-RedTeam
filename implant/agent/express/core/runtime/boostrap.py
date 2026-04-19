@@ -84,8 +84,10 @@ def bootstrap(ctx: BootstrapContext) -> AgentContext:
         extensions={"fingerprint": get_fingerprint()},
     )
 
-    # debug
-    print(pipeline.wrap(session_req))
+    # debug session request message
+    session_request = pipeline.wrap(session_req)
+    print(session_request.decode('utf-8'))
+
     # send request to server
     #response = requests.post(
     #    beacon_cfg.url,
