@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import { apiGet, apiPost, apiDelete } from '../lib/api';
 
 // Infer target type from its value string.
@@ -42,8 +43,10 @@ const SEV_STYLE = {
 };
 const SEV_ORDER = ['critical', 'high', 'medium', 'low'];
 
-export default function ProjectWorkspace({ username }) {
+export default function ProjectWorkspace() {
   const { projectId } = useParams();
+  const { user } = useUser();
+  const username = user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 

@@ -1,161 +1,139 @@
-import { useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import AuthLanding     from './pages/AuthLanding'
-import LoginPage       from './pages/LoginPage'
-import RegisterPage    from './pages/RegisterPage'
-import TermsModal      from './pages/TermsModal'
-import HowItWorks      from './pages/HowItWorks'
-import DashboardHome   from './pages/DashboardHome'
-import ProjectWorkspace from './pages/ProjectWorkspace'
-import Dashboard       from './pages/Dashboard'
-import TopNav          from './components/TopNav'
-import WelcomeBanner   from './components/WelcomeBanner'
-import { setAuthUserId } from './lib/api'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { SignedIn, SignedOut, useUser, useClerk } from '@clerk/clerk-react'
 
-// Auth flow:
-//   landing → login  → app
-//   landing → register → terms → guide → app (isNewUser = true)
-//
-// Pre-auth states are managed with useState (transient; page refresh resets to landing).
+import AuthLanding       from './pages/AuthLanding'
+import SignInScreen      from './pages/SignInScreen'
+import SignUpScreen      from './pages/SignUpScreen'
+import OnboardingTerms   from './pages/OnboardingTerms'
+import OnboardingGuide   from './pages/OnboardingGuide'
+import HowItWorks        from './pages/HowItWorks'
+import DashboardHome     from './pages/DashboardHome'
+import ProjectWorkspace  from './pages/ProjectWorkspace'
+import Dashboard         from './pages/Dashboard'
+import TopNav            from './components/TopNav'
+
+/**
+ * Resolve a friendly display name from Clerk's user object without surfacing
+ * raw email ids in the header when a first name / username exists.
+ */
+function useDisplayName() {
+  const { user } = useUser()
+  if (!user) return { username: '', email: '' }
+  const email = user.primaryEmailAddress?.emailAddress ?? ''
+  const username = user.firstName || user.username || (email ? email.split('@')[0] : 'analyst')
+  return { username, email }
+}
+
+/**
+ * Gate for routes that require (a) a signed-in Clerk session and (b) the
+ * onboarding funnel (terms + guide) to have been completed.  Users mid-funnel
+ * are redirected to the appropriate step instead of the app.
+ */
+function RequireOnboarded({ children }) {
+  const { isLoaded, isSignedIn, user } = useUser()
+  const location = useLocation()
+
+  if (!isLoaded) return null
+  if (!isSignedIn) {
+    return <Navigate to="/sign-in" replace state={{ from: location }} />
+  }
+  const done = Boolean(user?.unsafeMetadata?.onboardingComplete)
+  if (!done) {
+    return <Navigate to="/onboarding/terms" replace />
+  }
+  return children
+}
+
+/**
+ * TopNav with Clerk sign-out wired in — mounted above every authenticated
+ * screen so the dropdown's "Sign Out" triggers a real Clerk session end.
+ */
+function AuthedTopNav() {
+  const { username } = useDisplayName()
+  const { signOut } = useClerk()
+  return <TopNav username={username} onSignOut={() => signOut({ redirectUrl: '/' })} />
+}
+
 function App() {
-  const [authState, setAuthState]   = useState('landing')
-  const [username, setUsername]     = useState('')
-  const [email, setEmail]           = useState('')
-  const [showWelcome, setShowWelcome] = useState(false)
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
-  const handleLoginSuccess = (name, userEmail, userId) => {
-    setAuthUserId(userId)
-    setUsername(name)
-    setEmail(userEmail)
-    setShowWelcome(false)
-    setAuthState('app')
-  }
-
-  const handleRegisterSuccess = (name, userEmail, userId) => {
-    setAuthUserId(userId)
-    setUsername(name)
-    setEmail(userEmail)
-    setAuthState('terms')
-  }
-
-  const handleTermsAccepted = () => setAuthState('guide')
-
-  // Declining terms sends back to credentials, not all the way to landing
-  const handleTermsDeclined = () => {
-    setAuthState('register')
-    setUsername('')
-    setEmail('')
-    setAuthUserId(null)
-  }
-
-  const handleGuideComplete = () => {
-    setShowWelcome(true)
-    setAuthState('app')
-  }
-
-  const handleSignOut = () => {
-    setAuthState('landing')
-    setUsername('')
-    setEmail('')
-    setShowWelcome(false)
-    setAuthUserId(null)
-  }
-
-  // ── Pre-auth screens ─────────────────────────────────────────────────────────
-
-  if (authState === 'landing') {
-    return (
-      <AuthLanding
-        onLogin={() => setAuthState('login')}
-        onRegister={() => setAuthState('register')}
-      />
-    )
-  }
-
-  if (authState === 'login') {
-    return (
-      <LoginPage
-        onBack={() => setAuthState('landing')}
-        onSuccess={handleLoginSuccess}
-        onGoRegister={() => setAuthState('register')}
-      />
-    )
-  }
-
-  if (authState === 'register') {
-    return (
-      <RegisterPage
-        onBack={() => setAuthState('landing')}
-        onSuccess={handleRegisterSuccess}
-        onGoLogin={() => setAuthState('login')}
-      />
-    )
-  }
-
-  if (authState === 'terms') {
-    return (
-      <TermsModal
-        username={username}
-        email={email}
-        onAccept={handleTermsAccepted}
-        onDecline={handleTermsDeclined}
-      />
-    )
-  }
-
-  if (authState === 'guide') {
-    return <HowItWorks onComplete={handleGuideComplete} />
-  }
-
-  // ── Authenticated app — react-router takes over ──────────────────────────────
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* ── Public landing ───────────────────────────────────────────── */}
+      <Route
+        path="/"
+        element={
+          <>
+            <SignedOut>
+              <AuthLanding />
+            </SignedOut>
+            <SignedIn>
+              <Navigate to="/dashboard" replace />
+            </SignedIn>
+          </>
+        }
+      />
 
+      {/* ── Clerk auth screens (path routing wants a splat) ──────────── */}
+      <Route path="/sign-in/*" element={<SignInScreen />} />
+      <Route path="/sign-up/*" element={<SignUpScreen />} />
+
+      {/* ── Onboarding funnel (signed in, not-yet-onboarded) ─────────── */}
+      <Route
+        path="/onboarding/terms"
+        element={
+          <>
+            <SignedIn><OnboardingTerms /></SignedIn>
+            <SignedOut><Navigate to="/sign-in" replace /></SignedOut>
+          </>
+        }
+      />
+      <Route
+        path="/onboarding/guide"
+        element={
+          <>
+            <SignedIn><OnboardingGuide /></SignedIn>
+            <SignedOut><Navigate to="/sign-in" replace /></SignedOut>
+          </>
+        }
+      />
+
+      {/* ── Authenticated app ────────────────────────────────────────── */}
       <Route
         path="/dashboard"
         element={
-          <>
-            <TopNav username={username} onSignOut={handleSignOut} />
-            <DashboardHome username={username} />
-            {showWelcome && (
-              <WelcomeBanner onDismiss={() => setShowWelcome(false)} />
-            )}
-          </>
+          <RequireOnboarded>
+            <AuthedTopNav />
+            <DashboardHome />
+          </RequireOnboarded>
         }
       />
-
       <Route
         path="/guide"
         element={
-          <>
-            <TopNav username={username} onSignOut={handleSignOut} />
-            {/* Standalone guide — no onComplete prop shows "Back to Dashboard" CTA */}
+          <RequireOnboarded>
+            <AuthedTopNav />
             <HowItWorks />
-          </>
+          </RequireOnboarded>
         }
       />
-
       <Route
         path="/projects/:projectId"
         element={
-          <>
-            <TopNav username={username} onSignOut={handleSignOut} />
-            <ProjectWorkspace username={username} />
-          </>
+          <RequireOnboarded>
+            <AuthedTopNav />
+            <ProjectWorkspace />
+          </RequireOnboarded>
+        }
+      />
+      <Route
+        path="/projects/:projectId/runs/:runId"
+        element={
+          <RequireOnboarded>
+            <Dashboard />
+          </RequireOnboarded>
         }
       />
 
-      {/* Full-screen scan terminal — no TopNav chrome */}
-      <Route
-        path="/projects/:projectId/runs/:runId"
-        element={<Dashboard />}
-      />
-
-      {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

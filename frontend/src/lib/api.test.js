@@ -1,46 +1,90 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { setAuthUserId } from './api'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { registerClerkTokenGetter, apiGet } from './api'
 
-// We test the module-level auth state by calling setAuthUserId and
-// then checking the header injected into a real fetch call.
-// Since authHeaders() is not exported, we test its effect indirectly
-// via the exported setAuthUserId setter and a manual header check.
-
-describe('setAuthUserId / authHeaders', () => {
+describe('registerClerkTokenGetter', () => {
   beforeEach(() => {
-    // Reset auth state before each test
-    setAuthUserId(null)
+    registerClerkTokenGetter(null)
+    vi.restoreAllMocks()
   })
 
-  it('should include X-User-Id header after setAuthUserId is called', () => {
-    setAuthUserId('test-uuid-1234')
-
-    // After setting, the module holds the id — we verify the setter
-    // doesn't throw and accepts a valid UUID string
-    expect(() => setAuthUserId('test-uuid-1234')).not.toThrow()
-    expect(typeof 'test-uuid-1234').toBe('string')
+  it('accepts a function reference without throwing', () => {
+    const fakeGetToken = async () => 'jwt-abc'
+    expect(() => registerClerkTokenGetter(fakeGetToken)).not.toThrow()
   })
 
-  it('should not throw when setAuthUserId is called with null (logout)', () => {
-    setAuthUserId('some-id')
-    expect(() => setAuthUserId(null)).not.toThrow()
+  it('accepts null to clear the registered getter (sign-out)', () => {
+    registerClerkTokenGetter(async () => 'jwt-abc')
+    expect(() => registerClerkTokenGetter(null)).not.toThrow()
+  })
+
+  it('ignores non-function values defensively', () => {
+    expect(() => registerClerkTokenGetter('not-a-function')).not.toThrow()
+    expect(() => registerClerkTokenGetter(42)).not.toThrow()
+  })
+})
+
+describe('apiGet Authorization header', () => {
+  beforeEach(() => {
+    registerClerkTokenGetter(null)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    registerClerkTokenGetter(null)
+  })
+
+  function mockFetchOk(captureHeaders) {
+    return vi.fn(async (_url, init) => {
+      captureHeaders(init?.headers ?? {})
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true }),
+      }
+    })
+  }
+
+  it('includes Authorization: Bearer <token> when a getter is registered', async () => {
+    const captured = {}
+    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+    registerClerkTokenGetter(async () => 'jwt-xyz')
+
+    await apiGet('/users/me')
+
+    expect(captured.Authorization).toBe('Bearer jwt-xyz')
+  })
+
+  it('omits Authorization header when no getter is registered', async () => {
+    const captured = {}
+    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+
+    await apiGet('/users/me')
+
+    expect(captured.Authorization).toBeUndefined()
+  })
+
+  it('omits Authorization header when getter returns null (unauthenticated)', async () => {
+    const captured = {}
+    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+    registerClerkTokenGetter(async () => null)
+
+    await apiGet('/users/me')
+
+    expect(captured.Authorization).toBeUndefined()
   })
 })
 
 describe('extractError fallback behavior', () => {
-  it('should produce a status-based message when response has no JSON body', async () => {
-    // Simulate a response with no parseable JSON
+  it('produces a status-based message when response has no JSON body', async () => {
     const fakeResponse = {
       status: 500,
-      json: async () => { throw new Error('no body') }
+      json: async () => { throw new Error('no body') },
     }
 
-    // Replicate extractError logic directly (it is not exported, so we inline it)
     async function extractError(response) {
       try {
         const body = await response.json()
-        const msg = body.detail ?? body.message ?? `Request failed: ${response.status}`
-        return `${response.status} ${msg}`
+        return body.detail ?? body.message ?? `Request failed: ${response.status}`
       } catch {
         return `Request failed: ${response.status}`
       }
@@ -50,23 +94,22 @@ describe('extractError fallback behavior', () => {
     expect(result).toBe('Request failed: 500')
   })
 
-  it('should surface the detail field from a FastAPI error response', async () => {
+  it('surfaces the detail field from a FastAPI error response', async () => {
     const fakeResponse = {
       status: 409,
-      json: async () => ({ detail: 'Email already registered' })
+      json: async () => ({ detail: 'Already exists' }),
     }
 
     async function extractError(response) {
       try {
         const body = await response.json()
-        const msg = body.detail ?? body.message ?? `Request failed: ${response.status}`
-        return `${response.status} ${msg}`
+        return body.detail ?? body.message ?? `Request failed: ${response.status}`
       } catch {
         return `Request failed: ${response.status}`
       }
     }
 
     const result = await extractError(fakeResponse)
-    expect(result).toBe('409 Email already registered')
+    expect(result).toBe('Already exists')
   })
 })
