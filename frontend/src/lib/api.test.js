@@ -46,7 +46,7 @@ describe('apiGet Authorization header', () => {
 
   it('includes Authorization: Bearer <token> when a getter is registered', async () => {
     const captured = {}
-    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+    globalThis.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
     registerClerkTokenGetter(async () => 'jwt-xyz')
 
     await apiGet('/users/me')
@@ -56,7 +56,7 @@ describe('apiGet Authorization header', () => {
 
   it('omits Authorization header when no getter is registered', async () => {
     const captured = {}
-    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+    globalThis.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
 
     await apiGet('/users/me')
 
@@ -65,7 +65,7 @@ describe('apiGet Authorization header', () => {
 
   it('omits Authorization header when getter returns null (unauthenticated)', async () => {
     const captured = {}
-    global.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
+    globalThis.fetch = mockFetchOk((headers) => Object.assign(captured, headers))
     registerClerkTokenGetter(async () => null)
 
     await apiGet('/users/me')

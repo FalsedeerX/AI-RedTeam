@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     PURDUE_ALLOWED_EMAILS: str = ""
     APPROVED_TARGET_URL: str = ""
 
+    # Clerk JWT verification. Empty strings disable Clerk (dev-only fallback path).
+    CLERK_ISSUER: str = ""
+    CLERK_JWKS_URL: str = ""
+    CLERK_AUDIENCE: str = ""
+
+    # When "1" *and* CLERK_ISSUER is empty, accept the legacy X-User-Id header.
+    # Default off. CI and production must keep this unset.
+    AUTH_DEV_BYPASS: str = "0"
+
     @property
     def DB_OWNER_URL(self) -> str:
         return (
@@ -44,6 +53,14 @@ class Settings(BaseSettings):
     @property
     def purdue_allowed_emails(self) -> list[str]:
         return [email.strip() for email in self.PURDUE_ALLOWED_EMAILS.split(",") if email.strip()]
+
+    @property
+    def clerk_enabled(self) -> bool:
+        return bool(self.CLERK_ISSUER) and bool(self.CLERK_JWKS_URL)
+
+    @property
+    def auth_dev_bypass_enabled(self) -> bool:
+        return self.AUTH_DEV_BYPASS == "1" and not self.clerk_enabled
 
 
     class Config:

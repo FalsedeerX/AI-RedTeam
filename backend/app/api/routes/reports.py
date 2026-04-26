@@ -15,7 +15,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_project_owner
 from app.db.broker import ReportsBroker
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -51,9 +51,16 @@ class ReportsRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> ReportResponse:
         """Fetch a persisted report by its UUID."""
-        report = self.broker.get(UUID(report_id))
+        try:
+            report_uuid = UUID(report_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        report = self.broker.get(report_uuid)
         if report is None:
             raise HTTPException(status_code=404, detail="Report not found")
+
+        require_project_owner(report.project_id, user_id)
 
         return ReportResponse(
             id=str(report.id),
