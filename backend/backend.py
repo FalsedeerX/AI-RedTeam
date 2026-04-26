@@ -12,11 +12,17 @@ def initialize_server() -> FastAPI:
 
 
 def _register_middleware(app: FastAPI) -> None:
-    # Allow the Vite dev server (default port 5173) to reach the API.
-    # Extend origins as needed for production deployment.
+    # Frontend origins allowed to hit the API with credentials (Bearer token).
+    # Clerk redirects happen on the frontend; the backend only sees Authorization
+    # headers, so Clerk's own origins do NOT need to be listed here.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://voidmare.com"],
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://voidmare.com",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

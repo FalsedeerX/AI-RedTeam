@@ -20,7 +20,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_project_owner, require_run_owner
 from app.db.broker import RunsBroker, FindingsBroker
 from app.domain.runs import RunStatus, RunType, RunPurpose
 from app.services import scan_engine
@@ -90,6 +90,7 @@ class ScansRouter:
         Create a Run record, then fire the scan agent as an asyncio background task.
         Returns the run_id so the client can poll for status.
         """
+        require_project_owner(payload.project_id, user_id)
         run_type = RunType.SCAN if payload.scan_type == "network" else RunType.OSINT
         raw_command = json.dumps({
             "targets": payload.targets,
@@ -121,6 +122,7 @@ class ScansRouter:
         Poll the current state of a running scan.
         Returns logs accumulated so far, current status, and any pending HITL action.
         """
+        require_run_owner(run_id, user_id)
         state = scan_engine.get_state(run_id)
         if not state:
             # Scan may not have started yet or run_id is invalid
@@ -140,6 +142,7 @@ class ScansRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> list[FindingResponse]:
         """Return all persisted findings for a completed run."""
+        require_run_owner(run_id, user_id)
         rows = self.findings_broker.get_bulk({"run_id": UUID(run_id)})
         return [
             FindingResponse(
@@ -161,6 +164,7 @@ class ScansRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> ActionResponse:
         """Signal the scan agent that the operator approved the pending action."""
+        require_run_owner(run_id, user_id)
         success = scan_engine.approve_hitl(run_id)
         if not success:
             raise HTTPException(status_code=404, detail="Scan not found")
@@ -172,6 +176,7 @@ class ScansRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> ActionResponse:
         """Signal the scan agent that the operator denied the pending action."""
+        require_run_owner(run_id, user_id)
         success = scan_engine.deny_hitl(run_id)
         if not success:
             raise HTTPException(status_code=404, detail="Scan not found")
@@ -183,6 +188,7 @@ class ScansRouter:
         user_id: UUID = Depends(get_current_user_id),
     ) -> ActionResponse:
         """Emergency stop — terminates the scan immediately."""
+        require_run_owner(run_id, user_id)
         success = scan_engine.kill_scan(run_id)
         if not success:
             raise HTTPException(status_code=404, detail="Scan not found")

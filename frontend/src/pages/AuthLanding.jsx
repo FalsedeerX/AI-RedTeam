@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import {
   AuthPageWrapper,
   AuthCard,
@@ -6,9 +7,11 @@ import {
   S,
   PrimaryButton,
   SecondaryButton,
-} from '../components/auth/AuthShared';
+} from '../components/auth/AuthShared'
 
-export default function AuthLanding({ onLogin, onRegister }) {
+export default function AuthLanding() {
+  const navigate = useNavigate()
+
   return (
     <AuthPageWrapper>
       <AuthCard>
@@ -25,8 +28,8 @@ export default function AuthLanding({ onLogin, onRegister }) {
 
         <div style={S.divider} />
 
-        <PrimaryButton onClick={onLogin}>Log in</PrimaryButton>
-        <SecondaryButton onClick={onRegister}>Create account</SecondaryButton>
+        <PrimaryButton onClick={() => navigate('/sign-in')}>Log in</PrimaryButton>
+        <SecondaryButton onClick={() => navigate('/sign-up')}>Create account</SecondaryButton>
 
         <p style={{
           textAlign: 'center',
@@ -39,5 +42,5 @@ export default function AuthLanding({ onLogin, onRegister }) {
         </p>
       </AuthCard>
     </AuthPageWrapper>
-  );
+  )
 }

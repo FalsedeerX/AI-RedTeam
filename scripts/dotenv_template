@@ -24,8 +24,25 @@ AGENT_SERVICE_URL=http://localhost:8100
 
 DOCKER_SANDBOX_ENABLED=true
 
+# <<<<<<<<<<<<<<< Clerk (backend JWT verification) >>>>>>>>>>>>>>>
+# Copy these from the Clerk dashboard (https://dashboard.clerk.com → API Keys / JWT).
+# CLERK_ISSUER is the Frontend API origin, e.g. https://<slug>.clerk.accounts.dev
+# CLERK_JWKS_URL is <issuer>/.well-known/jwks.json
+# CLERK_AUDIENCE is optional; set it only if you configured a custom JWT template "aud" claim.
+CLERK_ISSUER=
+CLERK_JWKS_URL=
+CLERK_AUDIENCE=
+
+# Dev-only fallback. Leave unset (or 0) in CI / staging / prod.
+# When AUTH_DEV_BYPASS=1 *and* CLERK_ISSUER is empty, the backend accepts the legacy
+# X-User-Id header so local tooling still works before Clerk env vars are configured.
+AUTH_DEV_BYPASS=0
+
 # <<<<<<<<<<<<<<< Frontend Configuration >>>>>>>>>>>>>>>
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+# Vite-visible (must be prefixed with VITE_)
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_CLERK_PUBLISHABLE_KEY=
 
 # <<<<<<<<<<<<<<< Docker Sandbox Configuration >>>>>>>>>>>>>>>
 # Set to "true" to run each agent scan inside an isolated Docker container.

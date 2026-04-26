@@ -26,7 +26,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_project_owner
 from app.core.deployment import enforce_approved_target
 from app.db.broker.agent_runs import AgentRunsBroker
 from app.services.agent_client import agent_client
@@ -109,6 +109,12 @@ class AgentRouter:
         for the project first.  The agent service inside the container
         receives the start command via HTTP.
         """
+        try:
+            project_uuid = UUID(payload.project_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Project not found")
+        require_project_owner(project_uuid, user_id)
+
         # ── Docker container provisioning ────────────────────────────────
         if DOCKER_ENABLED:
             try:
@@ -165,6 +171,7 @@ class AgentRouter:
         agent_run = self._agent_runs_broker.get(run_id)
         if not agent_run:
             raise HTTPException(status_code=404, detail="Run not found")
+        require_project_owner(agent_run.project_id, user_id)
         project_id = str(agent_run.project_id)
 
         try:
@@ -202,6 +209,7 @@ class AgentRouter:
         agent_run = self._agent_runs_broker.get(run_id)
         if not agent_run:
             raise HTTPException(status_code=404, detail="Run not found")
+        require_project_owner(agent_run.project_id, user_id)
         project_id = str(agent_run.project_id)
 
         try:
@@ -223,6 +231,7 @@ class AgentRouter:
         agent_run = self._agent_runs_broker.get(run_id)
         if not agent_run:
             raise HTTPException(status_code=404, detail="Run not found")
+        require_project_owner(agent_run.project_id, user_id)
         project_id = str(agent_run.project_id)
 
         try:
@@ -244,6 +253,7 @@ class AgentRouter:
         agent_run = self._agent_runs_broker.get(run_id)
         if not agent_run:
             raise HTTPException(status_code=404, detail="Run not found")
+        require_project_owner(agent_run.project_id, user_id)
         project_id = str(agent_run.project_id)
 
         try:

@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from app.schema.targets import TargetCreate, TargetDetail, TargetPatch
 from app.domain.target import TargetType
-from app.api.deps import get_current_user_id
+from app.api.deps import get_current_user_id, require_project_owner
 from app.core.deployment import enforce_approved_target
 from app.db.broker import TargetsBroker
 from app.db.models import Targets
@@ -54,10 +54,8 @@ class TargetsRouter:
         self.router.patch("/{target_id}", response_model=TargetDetail)(self.update_target)
 
     def list_targets(self, project_id: UUID, user_id: UUID = Depends(get_current_user_id)):
-        """
-        List all targets belonging to a project.
-        Ownership check on the project is deferred to a future middleware.
-        """
+        """List all targets belonging to a project owned by the caller."""
+        require_project_owner(project_id, user_id)
         return self.broker.list_by_project(project_id)
 
     def create_target(self, project_id: UUID, payload: TargetCreateRequest, user_id: UUID = Depends(get_current_user_id)):
@@ -65,6 +63,7 @@ class TargetsRouter:
         Create a new target for the project in the URL path.
         target_type is inferred from the value if not supplied by the caller.
         """
+        require_project_owner(project_id, user_id)
         approved_value = enforce_approved_target(payload.value)
         resolved_type = payload.target_type or infer_target_type(approved_value)
         data = {
