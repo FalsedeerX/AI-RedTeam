@@ -8,4 +8,5 @@ def get_embeddings():
     """
     return OllamaEmbeddings(
         model=config.EMBEDDING_MODEL_NAME,
+        base_url=config.LLM_BASE_URL
     )

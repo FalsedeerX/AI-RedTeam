@@ -1,5 +1,4 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches: [main, develop, feature/**]
@@ -56,7 +55,6 @@ jobs:
       - name: Build
         working-directory: ./frontend
         run: npm run build
-
 
   implant-protocol-test:
     runs-on: ubuntu-latest

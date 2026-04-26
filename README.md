@@ -6,6 +6,13 @@ Team S06 – Fall 2025 - Spring 2026
 
 ---
 
+## Key Features
+- Autonomous security auditing and remediation via LLM-generated commands  
+- Custom implant with C2 infrastructure for remote execution and control  
+- RAG-driven command generation for context-aware decision making  
+
+---
+
 ## Contributors
 - **Si Ci Chou (Simon)** – chou170@purdue.edu  
 - **Yu-Kuang Chen (Falsedeer)** - chen5292@purdue.edu
@@ -18,12 +25,6 @@ Team S06 – Fall 2025 - Spring 2026
 ![Contributors](https://img.shields.io/badge/contributors-3-orange)
 
 ---
-
-
-
-
-
-
 
 ## Project Structure
 
@@ -141,10 +142,35 @@ Interactive API docs (Swagger UI): `http://127.0.0.1:8000/docs`
 
 **Terminal 2 — Frontend**
 ```bash
-cd frontend/web
+cd frontend
 npm run dev
 ```
 Frontend runs at `http://localhost:5173`
+
+### Clerk configuration
+
+Authentication is powered by [Clerk](https://dashboard.clerk.com). Before
+first run, set the following values in your `.env` (backend) and
+`frontend/.env` (Vite):
+
+Backend (`.env`):
+```
+CLERK_ISSUER=https://<your-slug>.clerk.accounts.dev
+CLERK_JWKS_URL=https://<your-slug>.clerk.accounts.dev/.well-known/jwks.json
+CLERK_AUDIENCE=            # optional; only if you configured a custom JWT aud
+AUTH_DEV_BYPASS=0          # set to 1 *only* for local-only dev before Clerk is wired
+```
+
+Frontend (`frontend/.env`):
+```
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+```
+
+> **Dev cutover**: the migration removes `users.hashed_password`. Before
+> running `alembic upgrade head` the first time after pulling this change,
+> wipe any legacy accounts with `TRUNCATE app.users CASCADE;` in psql,
+> otherwise the NOT-NULL drop will fail.
 
 > On every subsequent session you only need to activate the venv and start both servers. If Postgres was stopped (e.g. after a reboot), run `brew services start postgresql@14` first.
 
@@ -154,9 +180,7 @@ Frontend runs at `http://localhost:5173`
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/users/register` | Create a new account |
-| POST | `/users/auth` | Log in — returns `user_id` UUID |
-| GET | `/users/me` | Get current user profile |
+| GET | `/users/me` | Hydrate the local DB row for the current Clerk session |
 | GET | `/projects` | List all projects for current user |
 | POST | `/projects` | Create a new project |
 | GET | `/projects/{id}` | Get project detail |
@@ -169,8 +193,16 @@ Frontend runs at `http://localhost:5173`
 | POST | `/scans/{run_id}/approve` | Approve a pending HITL action |
 | POST | `/scans/{run_id}/deny` | Deny a pending HITL action |
 | POST | `/scans/{run_id}/kill` | Emergency stop |
+| POST | `/agent/start` | Start an agent run |
+| GET | `/agent/{run_id}/status` | Poll agent status / HITL / findings |
+| POST | `/agent/{run_id}/approve` · `/deny` · `/kill` | Agent HITL control |
+| GET | `/reports/{id}` | Fetch a persisted report |
 
-All protected routes require the `X-User-Id: <uuid>` request header, obtained from `POST /users/auth`.
+Every protected route expects an `Authorization: Bearer <clerk-jwt>` header.
+The frontend's `lib/api.js` attaches this automatically via Clerk's
+`useAuth().getToken()` hook, so app code just calls `apiGet` / `apiPost` /
+`apiDelete` as before.  Registration, sign-in, and password flows now live
+entirely inside Clerk's hosted `<SignIn>` / `<SignUp>` components.
 
 ---
 
