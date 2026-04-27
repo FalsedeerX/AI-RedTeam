@@ -17,25 +17,30 @@ HTTP translation (401 on error, lazy user upsert, dev bypass).
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import Any
 
-import httpx
 import jwt
 from jwt import PyJWKClient, InvalidTokenError
 
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
 JWKS_CACHE_TTL_SECONDS = 60 * 60  # 1 hour
+
+# Tolerate up to 10 s of clock drift between this server and Clerk.
+# Clerk session JWTs are short-lived (60 s default), so even a small
+# skew causes "Token is expired" / "Token is not yet valid" in prod.
+CLOCK_SKEW_LEEWAY_SECONDS = 10
 
 
 class ClerkAuthError(Exception):
     """Raised when a JWT fails verification for any reason."""
 
 
-# Cache the PyJWKClient per JWKS URL so we refetch at most every TTL.
 _jwks_lock = threading.Lock()
 _jwks_client: PyJWKClient | None = None
 _jwks_client_url: str | None = None
@@ -76,21 +81,32 @@ def verify_clerk_jwt(token: str) -> dict[str, Any]:
 
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token).key
-    except (httpx.HTTPError, InvalidTokenError, Exception) as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("JWKS key lookup failed: %s", exc, exc_info=True)
         raise ClerkAuthError(f"Failed to resolve signing key: {exc}") from exc
 
     decode_kwargs: dict[str, Any] = {
         "algorithms": ["RS256"],
         "issuer": settings.CLERK_ISSUER,
+        "leeway": CLOCK_SKEW_LEEWAY_SECONDS,
         "options": {"require": ["exp", "iat", "sub"]},
     }
     if settings.CLERK_AUDIENCE:
         decode_kwargs["audience"] = settings.CLERK_AUDIENCE
 
     try:
-        return jwt.decode(token, signing_key, **decode_kwargs)
+        claims = jwt.decode(token, signing_key, **decode_kwargs)
     except InvalidTokenError as exc:
+        logger.warning(
+            "JWT decode failed (issuer=%r, audience=%r): %s",
+            settings.CLERK_ISSUER,
+            settings.CLERK_AUDIENCE or "<not set>",
+            exc,
+        )
         raise ClerkAuthError(f"Invalid token: {exc}") from exc
+
+    logger.debug("Clerk JWT verified for sub=%s", claims.get("sub"))
+    return claims
 
 
 def extract_bearer_token(authorization_header: str | None) -> str | None:
