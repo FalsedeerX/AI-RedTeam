@@ -22,6 +22,7 @@ def _register_middleware(app: FastAPI) -> None:
             "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://voidmare.com",
+            "https://voidmare.com",
         ],
         allow_credentials=True,
         allow_methods=["*"],
