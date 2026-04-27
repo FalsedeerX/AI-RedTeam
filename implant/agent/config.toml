@@ -1,18 +1,29 @@
-version = 1
+version = 2
 
-[beacon]
-sleep_min = 1
-sleep_max = 3
+[BEACON]
+url = "http://127.0.0.1:5000/api/agent/beacon_v2"
+timeout_sec = 30
+max_retries = 5
+retry_base_sec = 90
+retry_jitter_percent = 30
+max_backoff_sec = 300
+
+[HEARTBEAT]
+interval = 15
+jitter_percent = 30
 workdays = [1, 2, 3, 4, 5]
 workhours = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
-[envelope]
+[ENVELOPE]
+enabled_encryption = ["fernet"]
+enabled_compression = ["zlib", "lz4"]
+default_encryption = "fernet"
+default_compression = "zlib"
+
+[ENVELOPE.encryption.fernet]
 passphrase = "Top-Secret-Key"
 salt = "8629e0ea91562eb9f682947d6c93e7ba84905c4b9a645b356dd4f9083eac3a60"
-payload_field = "data"
 
-[c2server]
-base_url = "http://127.0.0.1:5000"
-beacon_path = "/api/agent/status"
-report_path = "/api/agent/upload"
-
+[TASKS]
+auto_load = true
+enabled = []

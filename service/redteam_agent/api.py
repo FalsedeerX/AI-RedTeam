@@ -18,6 +18,7 @@ HITL synchronisation is handled via threading.Event inside RunState.
 
 import os
 import uuid
+import logging
 import threading
 import traceback
 
@@ -30,10 +31,13 @@ from langgraph.types import Command
 from .agent import get_agent
 from .run_state import (
     RunState,
+    AgentCancelledError,
     init_run,
     get_current_run,
     add_log,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +274,10 @@ def _execute_agent(run_state: RunState, query: str, target: str) -> None:
         }
         add_log(run_state, "system", "Agent execution completed.")
 
+    except AgentCancelledError:
+        add_log(run_state, "system", "Run terminated by operator.")
+        run_state.status = "killed"
+
     except Exception as exc:
         run_state.status = "error"
         run_state.error_message = str(exc)
@@ -297,6 +305,12 @@ app = FastAPI(
     title="RedTeam Agent Service",
     version="0.1.0"
 )
+
+
+@app.on_event("startup")
+def _startup_cleanup():
+    """Log that the agent service container is ready."""
+    logger.info("Agent Service started — ready to accept runs.")
 
 # POST /start — start a new agent run
 @app.post("/start", response_model=StartRunResponse, status_code=201)
@@ -370,6 +384,7 @@ def kill_run():
 
     run_state.killed = True
     run_state.hitl_event.set()   # unblock if waiting on HITL
+
     return ActionResponse(success=True)
 
 
