@@ -1,0 +1,55 @@
+<nav class="navbar navbar-expand-lg bg-body-secondary">
+	<!-- NavBar Brand -->
+	<div class="container-fluid">
+		<a class="navbar-brand d-flex align-items-center" href="#">
+			<img src="/static/images/express-icon.jpg" width="35" height="35" class="rounded me-2">
+			<span class="h3 fw-bold mb-0">ExpressC2</span>
+		</a>
+
+		<!-- NavBar collapse buttom for small screen -->
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<!-- Actual navigation links -->
+		<div class="collapse navbar-collapse" id="navbarNav">
+			<ul class="navbar-nav me-auto">
+				<li class="nav-item">
+					<a class="nav-link {% if request.endpoint == 'frontend.index' %}active{% endif %}"
+					   {% if request.endpoint == 'frontend.index' %}aria-current="page"{% endif %}
+					   href="{{ url_for('frontend.index') }}">
+						Dashboard
+					</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link disabled" aria-disabled="true">
+						Agents
+					</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link disabled" aria-disabled="true">
+						Tasks
+					</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link {% if request.endpoint == 'frontend.contracts' %}active{% endif %}"
+					   {% if request.endpoint == 'frontend.contracts' %}aria-current="page"{% endif %}
+					   href="{{ url_for('frontend.contracts') }}">
+						Contracts
+					</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link disabled" aria-disabled="true">
+						Logs
+					</a>
+				</li>
+			</ul>
+
+			<!-- Search box -->
+			<form class="d-flex" role="search">
+        		<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"/>
+        		<button class="btn btn-outline-success" type="submit">Search</button>
+      		</form>
+		</div>
+	</div>
+</nav>

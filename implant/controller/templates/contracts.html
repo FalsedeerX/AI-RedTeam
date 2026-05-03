@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+<!-- Page title overwrite ---->
+{% block title %}
+Contract Viewer
+{% endblock %}
+
+<!-- Main content overwrite -->
+{% block content %}
+
+<div class="d-flex flex-column flex-grow-1 p-2">
+	<!-- Display registered tasks on server -->
+	{% include "partials/contracts-overview-card.html" %}
+</div>
+
+<!-- Load jS script to modify DOM -->
+<script type="module" src="{{ url_for("static", filename="js/contracts.js") }}"></script>
+
+{% endblock %}
+

@@ -1,10 +1,9 @@
 name: CI/CD Pipeline
-
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, feature/**]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, feature/**]
 
 jobs:
   backend-test:
@@ -56,3 +55,31 @@ jobs:
       - name: Build
         working-directory: ./frontend
         run: npm run build
+
+  implant-protocol-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+
+          pip install -r implant/agent/requirements.txt
+
+          if [ -f test/implant/protocol/requirements.txt ]; then
+            pip install -r test/implant/protocol/requirements.txt
+          fi
+
+      - name: Run protocol test
+        run: |
+          source .venv/bin/activate
+          pytest test/implant/protocol/test_protocol.py -v

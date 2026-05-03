@@ -15,7 +15,7 @@ source ../../.env
 set +a
 
 # auto setup the database
-sudo -u postgres psql \
+sudo psql -U postgres\
 	-v db_name="$DB_NAME" \
 	-v db_schema="$DB_SCHEMA" \
 	-v db_owner_user="$DB_OWNER_USER" \

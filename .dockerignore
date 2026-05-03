@@ -1,0 +1,13 @@
+# Include only what the agent container image needs
+*
+!service/requirements.txt
+!service/redteam_agent/
+!doc/
+!service/redteam_agent/sandbox/entrypoint.sh
+
+# Exclude Python caches and dev artifacts from included dirs
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.env
+**/chroma_db/
